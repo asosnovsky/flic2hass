@@ -31,32 +31,32 @@ Modified by Flic Shortcut Labs.
 /** 'private' constants */
 var C = {
   PROTOCOL_LEVEL: 4,  // MQTT protocol level
-  DEF_PORT      : 1883, // MQTT default server port
+  DEF_PORT: 1883, // MQTT default server port
   DEF_KEEP_ALIVE: 60   // Default keep_alive (s)
 };
 
 /** Control packet types */
 var TYPE = {
-  CONNECT    : 1,
-  CONNACK    : 2,
-  PUBLISH    : 3,
-  PUBACK     : 4,
-  PUBREC     : 5,
-  PUBREL     : 6,
-  PUBCOMP    : 7,
-  SUBSCRIBE  : 8,
-  SUBACK     : 9,
+  CONNECT: 1,
+  CONNACK: 2,
+  PUBLISH: 3,
+  PUBACK: 4,
+  PUBREC: 5,
+  PUBREL: 6,
+  PUBCOMP: 7,
+  SUBSCRIBE: 8,
+  SUBACK: 9,
   UNSUBSCRIBE: 10,
-  UNSUBACK   : 11,
-  PINGREQ    : 12,
-  PINGRESP   : 13,
-  DISCONNECT : 14
+  UNSUBACK: 11,
+  PINGREQ: 12,
+  PINGRESP: 13,
+  DISCONNECT: 14
 };
 
 var pakId = Math.floor(Math.random() * 65534);
 
-Uint8Array.prototype.charCodeAt = function(a,b) {
-	return this.toString().charCodeAt(a,b);
+Uint8Array.prototype.charCodeAt = function (a, b) {
+  return this.toString().charCodeAt(a, b);
 }
 
 /**
@@ -92,7 +92,7 @@ function MQTT(server, options) {
   this.protocol_level = (options.protocol_level || C.PROTOCOL_LEVEL);
 
   if (typeof this.client_id == 'string') {
-    var payloadarray =[this.client_id.length >> 8, this.client_id.length & 255];
+    var payloadarray = [this.client_id.length >> 8, this.client_id.length & 255];
     var i = 2;
     var messagearray = this.client_id.split('');
     for (var j = 0; j < this.client_id.length; j++) {
@@ -104,7 +104,7 @@ function MQTT(server, options) {
     this.client_id = payloadarray;
   }
   if (this.password) {
-    var payloadarray =[this.password.length >> 8, this.password.length & 255];
+    var payloadarray = [this.password.length >> 8, this.password.length & 255];
     var i = 2;
     var messagearray = this.password.split('');
     for (var j = 0; j < this.password.length; j++) {
@@ -116,7 +116,7 @@ function MQTT(server, options) {
     this.password = payloadarray;
   }
   if (this.username) {
-    var payloadarray =[this.username.length >> 8, this.username.length & 255];
+    var payloadarray = [this.username.length >> 8, this.username.length & 255];
     var i = 2;
     var messagearray = this.username.split('');
     for (var j = 0; j < this.username.length; j++) {
@@ -131,32 +131,32 @@ function MQTT(server, options) {
 
 var __listeners = {};
 
-Object.prototype.on = function(type, fn) {
-	if (!__listeners[type]) {
-		__listeners[type] = [];
-	}
-	__listeners[type].push(fn);
+Object.prototype.on = function (type, fn) {
+  if (!__listeners[type]) {
+    __listeners[type] = [];
+  }
+  __listeners[type].push(fn);
 }
 
-Object.prototype.emit = function (type, data) {
-	if (__listeners[type]) {
-		__listeners[type].map(function (fn) {
-			fn(data);
-		});
-	}
+Object.prototype.emit = function (type, ...data) {
+  if (__listeners[type]) {
+    __listeners[type].map(function (fn) {
+      fn(...data);
+    });
+  }
 }
 
 if (!Buffer.from) {
-	Buffer.from = function(a) {
-		return new Buffer(a);
-	}
+  Buffer.from = function (a) {
+    return new Buffer(a);
+  }
 }
 
 /** 'public' constants here */
 MQTT.prototype.C = {
-  DEF_QOS        : 0,    // Default QOS level
+  DEF_QOS: 0,    // Default QOS level
   CONNECT_TIMEOUT: 10000, // Time (ms) to wait for CONNACK
-  PING_INTERVAL  : 40    // Server ping interval (s)
+  PING_INTERVAL: 40    // Server ping interval (s)
 };
 
 /* Utility functions ***************************/
@@ -164,34 +164,41 @@ MQTT.prototype.C = {
 var fromCharCode = String.fromCharCode;
 
 /** MQTT string (length MSB, LSB + data) */
-function mqttStr(s) {
-  var payloadarray =[s.length >> 8, s.length & 255];
-    var i = 2;
-    var messagearray = s.split('');
-    for (var j = 0; j < s.length; j++) {
-      var char = messagearray[j];
-      var numberrepres = char.charCodeAt(0);
-      payloadarray[i] = numberrepres;
-      i = i + 1;
-    }
+export function mqttStr(s) {
+  var payloadarray = [s.length >> 8, s.length & 255];
+  var i = 2;
+  var messagearray = s.split('');
+  for (var j = 0; j < s.length; j++) {
+    var char = messagearray[j];
+    var numberrepres = char.charCodeAt(0);
+    payloadarray[i] = numberrepres;
+    i = i + 1;
+  }
 
   return payloadarray;
 }
 
+export function mqttInt2Str(arr: number[] | Uint8Array): string {
+  let outStr = "";
+  for (var i = 0; i < arr.length; i++) {
+    outStr += createEscapedHex(arr[i])
+  }
+  return outStr
+}
 
 /** MQTT packet length formatter - algorithm from reference docs */
 function mqttPacketLength(length) {
-    var encLength = [];
-    var i = 0;
+  var encLength = [];
+  var i = 0;
   do {
     var encByte = length & 127;
     length = length >> 7;
     // if there are more data to encode, set the top bit of this byte
     if (length > 0) {
-        encByte += 128;
+      encByte += 128;
     }
-      encLength[i] = encByte;
-      i++;
+    encLength[i] = encByte;
+    i++;
   } while (length > 0);
   return encLength;
 }
@@ -203,9 +210,9 @@ function mqttPacketLengthDec(length) {
   var lb = 0;
   do {
     lb = length[bytes];
-    decL |= (lb & 127) << (bytes++*7);
+    decL |= (lb & 127) << (bytes++ * 7);
   } while ((lb & 128) && (bytes < 4))
-  return {"decLen": decL, "lenBy": bytes};
+  return { "decLen": decL, "lenBy": bytes };
 }
 
 /** MQTT standard packet formatter */
@@ -219,7 +226,7 @@ function mqttPacket(cmd, variable, payload) {
 /** Generate random UID */
 var mqttUid = (function () {
   function s4() {
-    var numberstring = Math.floor((1 + Math.random()*10));
+    var numberstring = Math.floor((1 + Math.random() * 10));
     if (numberstring == 10) numberstring = 9;
     numberstring = 97 + numberstring;
     return numberstring;
@@ -239,7 +246,7 @@ function mqttPid() {
 
 /** Get PID from message */
 function getPid(data) {
-  return data.slice(0,2);
+  return data.slice(0, 2);
 }
 
 /** PUBLISH control packet */
@@ -258,15 +265,15 @@ function mqttPublish(topic, message, qos, flags) {
 /** SUBSCRIBE control packet */
 function mqttSubscribe(topic, qos) {
   var cmd = TYPE.SUBSCRIBE << 4 | 2;
-  var payloadarray =[];
-    var i = 0;
-    var messagearray = topic.split('');
-    for (var j = 0; j < topic.length; j++) {
-      var char = messagearray[j];
-      var numberrepres = char.charCodeAt(0);
-      payloadarray[i] = numberrepres;
-      i = i + 1;
-    }
+  var payloadarray = [];
+  var i = 0;
+  var messagearray = topic.split('');
+  for (var j = 0; j < topic.length; j++) {
+    var char = messagearray[j];
+    var numberrepres = char.charCodeAt(0);
+    payloadarray[i] = numberrepres;
+    i = i + 1;
+  }
   return mqttPacket(cmd,
     mqttPid(),
     mqttStr(topic).concat([qos]));
@@ -281,12 +288,12 @@ function mqttUnsubscribe(topic) {
 }
 
 /** Create escaped hex value from number */
-function createEscapedHex(number) {
-  return fromCharCode(parseInt(number.toString(16), 16));
+function createEscapedHex(n: number): string {
+  return fromCharCode(parseInt(n.toString(16), 16));
 }
 
 // Handle a single packet of data
-MQTT.prototype.packetHandler = function(data) {
+MQTT.prototype.packetHandler = function (data) {
 
   // if we had some data left over from last
   // time, add it on
@@ -318,18 +325,18 @@ MQTT.prototype.packetHandler = function(data) {
     var topic_len = pData[0] << 8 | pData[1];
     var msg_start = 2 + topic_len + (qos ? 2 : 0);
     var parsedData = {
-      topic  : pData.slice(2, 2 + topic_len),
+      topic: pData.slice(2, 2 + topic_len),
       message: pData.slice(msg_start, pData.length),
-      dup    : (cmd & 0x8) >> 3,
-      qos    : qos,
-      pid    : qos?pData.slice(2+topic_len,4+topic_len):0,
-      retain : cmd & 0x1
+      dup: (cmd & 0x8) >> 3,
+      qos: qos,
+      pid: qos ? pData.slice(2 + topic_len, 4 + topic_len) : 0,
+      retain: cmd & 0x1
     };
     if (parsedData.qos) {
-      this.client.write([((parsedData.qos == 1)?TYPE.PUBACK:TYPE.PUBREC) << 4,  2, parsedData.pid]);
+      this.client.write([((parsedData.qos == 1) ? TYPE.PUBACK : TYPE.PUBREC) << 4, 2, parsedData.pid]);
     }
     this.emit('publish', parsedData);
-    this.emit('message', parsedData.topic, parsedData.message);
+    this.emit('message', mqttInt2Str(parsedData.topic), mqttInt2Str(parsedData.message));
   } else if (type === TYPE.PUBACK) {
     this.emit('puback', data.charCodeAt(2) << 8 | data.charCodeAt(3));
   } else if (type === TYPE.PUBREC) {
@@ -345,8 +352,8 @@ MQTT.prototype.packetHandler = function(data) {
   } else if (type === TYPE.PUBCOMP) {
     this.emit('pubcomp', data.charCodeAt(2) << 8 | data.charCodeAt(3));
   } else if (type === TYPE.SUBACK) {
-    if(pData.length > 0) {
-      if(pData[pData.length - 1] == 0x80) {
+    if (pData.length > 0) {
+      if (pData[pData.length - 1] == 0x80) {
         this.emit('subscribed_fail');
       } else {
         this.emit('subscribed');
@@ -442,11 +449,11 @@ MQTT.prototype._scktClosed = function () {
 /** Disconnect from server */
 MQTT.prototype.disconnect = function () {
   if (!this.client) return;
-    try {
-      this.client.write(Buffer.from([(TYPE.DISCONNECT << 4), 0]));
-    } catch (e) {
-      return this._scktClosed();
-    }
+  try {
+    this.client.write(Buffer.from([(TYPE.DISCONNECT << 4), 0]));
+  } catch (e) {
+    return this._scktClosed();
+  }
   this.client.end();
   this.client = false;
 };
@@ -461,7 +468,7 @@ MQTT.prototype.publish = function (topic, message, opts) {
   if (!this.client) return;
   opts = opts || {};
   try {
-    var payloadarray =[];
+    var payloadarray = [];
     var i = 0;
     var messagearray = message.split('');
     for (var j = 0; j < message.length; j++) {
@@ -490,16 +497,16 @@ MQTT.prototype.subscribe = function (topics, opts) {
     topics.forEach(function (topic) {
       subs.push({
         topic: topic,
-        qos  : opts.qos || this.C.DEF_QOS
+        qos: opts.qos || this.C.DEF_QOS
       });
     }.bind(this));
-} else {
+  } else {
     Object
       .keys(topics)
       .forEach(function (k) {
         subs.push({
-            topic: k,
-            qos  : topics[k]
+          topic: k,
+          qos: topics[k]
         });
       });
   }
@@ -531,9 +538,9 @@ MQTT.prototype.ping = function () {
 /** Create connection flags */
 MQTT.prototype.createFlagsForConnection = function (options) {
   var flags = 0;
-  flags |= ( this.username ) ? 0x80 : 0;
-  flags |= ( this.username && this.password ) ? 0x40 : 0;
-  flags |= ( options.clean_session ) ? 0x02 : 0;
+  flags |= (this.username) ? 0x80 : 0;
+  flags |= (this.username && this.password) ? 0x40 : 0;
+  flags |= (options.clean_session) ? 0x02 : 0;
   return flags;
 };
 
@@ -560,21 +567,44 @@ MQTT.prototype.mqttConnect = function (clean) {
   }
   return mqttPacket(cmd,
     mqttStr(this.protocol_name)/*protocol name*/.concat(
-    [this.protocol_level]) /*protocol level*/.concat(
-    [flags]).concat(keep_alive),
+      [this.protocol_level]) /*protocol level*/.concat(
+        [flags]).concat(keep_alive),
     payload);
 };
 
 /* Exports *************************************/
 
 /** This is 'exported' so it can be used with `require('MQTT.js').create(server, options)` */
-exports.create = function (server, options) {
+export function create(server, options): MQTT {
   return new MQTT(server, options);
 };
 
-exports.connect = function (options) {
+export function connect(options): MQTT {
   var mqtt = new MQTT(options.host, options);
   mqtt.connect();
   return mqtt;
 };
 
+
+export interface MQTT {
+  connect(): void;
+  publish(topic: string, message: string, opts: {
+    retain?: boolean, // the server should retain this message and send it out again to new subscribers
+    dup?: boolean,   // indicate the message is a duplicate because original wasn't ACKed (QoS > 0 only)
+  } | undefined): void;
+  subscribe(topics: string[]): void;
+  unsubscribe(topic: string): void;
+  on(ev: 'publish', cb: (data: { topic: Buffer, message: Buffer }) => void): void;
+  on(ev: 'message', cb: (topic: string, message: string) => void): void;
+  on(ev: 'puback', cb: (data) => void): void;
+  on(ev: 'pubcomp', cb: (data) => void): void;
+  on(ev: 'subscribed_fail', cb: (data) => void): void;
+  on(ev: 'subscribed', cb: (data) => void): void;
+  on(ev: 'unsubscribed', cb: (data) => void): void;
+  on(ev: 'ping_reply', cb: (data) => void): void;
+  on(ev: 'connected', cb: (data) => void): void;
+  on(ev: 'connect', cb: (data) => void): void;
+  on(ev: 'error', cb: (data) => void): void;
+  on(ev: 'disconnected', cb: (data) => void): void;
+  on(ev: 'close', cb: (data) => void): void;
+};

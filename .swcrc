@@ -1,0 +1,12 @@
+{
+    "jsc": {
+        "target": "es3",
+        "parser": {
+            "syntax": "typescript",
+        }
+    },
+    "minify": false,
+    "isModule": true,
+    "sourceMaps": false,
+    "inlineSourcesContent": false
+}
