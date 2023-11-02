@@ -23,7 +23,6 @@ export type Options = {
 export const start = (
     buttonModule: ButtonModule,
     irModule: IRModule,
-    uniqueId: string,
     options: Options,
 ) => {
     const mqttServer = mqtt.create(
@@ -33,8 +32,10 @@ export const start = (
     const logger = makeLogger('root', options.debug ?? false);
     options.ha = options.ha ?? {}
     options.flicBtns = options.flicBtns ?? {}
+    options.flicIR = options.flicIR ?? {}
     options.ha.debug = options.ha.debug ?? options.debug ?? false
     options.flicBtns.debug = options.flicBtns.debug ?? options.debug ?? false
+    options.flicIR.debug = options.flicBtns.debug ?? options.debug ?? false
     const ha = makeHAmqtt(mqttServer, options.ha);
     mqttServer.on('connected', () => {
         logger.info("connected to mqtt")
@@ -48,7 +49,6 @@ export const start = (
                 irModule,
                 ha,
                 mqttServer,
-                uniqueId,
                 options.flicIR,
             ).start();
         }

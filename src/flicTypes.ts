@@ -9,6 +9,7 @@ export type Button = {
     connected: boolean // The connection to the button is currently established
     ready: boolean // The connection is verified (see buttonReady)
     batteryStatus: number | null // Battery level in percent (0-100), or null if unknown
+    batteryTimestamp: number | null // Last time the battery was updated
     firmwareVersion: number | null // Firmware version of button, or null if unknown
     flicVersion: number | null // Flic version (1 or 2)
     uuid: string // A 32 characters long hex string, unique for every button

@@ -87,7 +87,8 @@ var ENTITIES = {
     action: [
         "sensor",
         {
-            icon: "mdi:gesture-tap-button"
+            icon: "mdi:gesture-tap-button",
+            name: "Click Action"
         }
     ],
     state: [
@@ -103,16 +104,38 @@ var ENTITIES = {
             device_class: "battery"
         }
     ],
+    batteryLastUpdate: [
+        "sensor",
+        {
+            name: "Battery Last Update Time",
+            device_class: "duration",
+            unit_of_measurement: "s"
+        }
+    ],
     connected: [
         "binary_sensor",
         {
-            device_class: "connectivity"
+            device_class: "connectivity",
+            name: "Connection Established"
         }
     ],
     ready: [
         "binary_sensor",
         {
-            device_class: "running"
+            device_class: "connectivity",
+            name: "Connection Verified"
+        }
+    ],
+    activeDisconnect: [
+        "binary_sensor",
+        {
+            name: "User Active Disconnect"
+        }
+    ],
+    passive: [
+        "binary_sensor",
+        {
+            name: "Passive Mode"
         }
     ]
 };
@@ -147,11 +170,6 @@ function makeButtonController(ha, buttonModule) {
                         payload_available: "ON",
                         payload_not_available: "OFF",
                         topic: ha.genFlicPrefix(genButtonUniqueId(button.bdaddr), "ready")
-                    },
-                    {
-                        payload_available: "ON",
-                        payload_not_available: "OFF",
-                        topic: ha.genFlicPrefix(genButtonUniqueId(button.bdaddr), "connected")
                     }
                 ],
                 availability_mode: "all"
@@ -172,8 +190,11 @@ function makeButtonController(ha, buttonModule) {
     };
     var publishButtonMeta = function(button) {
         ha.publishState(genButtonUniqueId(button.bdaddr), "battery", button.batteryStatus);
+        ha.publishState(genButtonUniqueId(button.bdaddr), "batteryLastUpdate", button.batteryTimestamp ? "".concat(Math.round((Date.now() - button.batteryTimestamp) / 1000)) : "unknown");
         ha.publishState(genButtonUniqueId(button.bdaddr), "connected", button.connected ? "ON" : "OFF");
         ha.publishState(genButtonUniqueId(button.bdaddr), "ready", button.ready ? "ON" : "OFF");
+        ha.publishState(genButtonUniqueId(button.bdaddr), "activeDisconnect", button.activeDisconnect ? "ON" : "OFF");
+        ha.publishState(genButtonUniqueId(button.bdaddr), "passive", button.activeDisconnect ? "ON" : "OFF");
     };
     var addBtn = function(eventName) {
         return function(obj) {
@@ -184,9 +205,15 @@ function makeButtonController(ha, buttonModule) {
     };
     var start = function() {
         logger.info("Starting...");
+        var resetActiontInv = null;
         buttonModule.on("buttonAdded", addBtn("buttonAdded"));
         buttonModule.on("buttonConnected", addBtn("buttonConnected"));
-        buttonModule.on("buttonReady", addBtn("buttonReady"));
+        buttonModule.on("buttonReady", function(btn) {
+            addBtn("buttonReady")(btn);
+            var button = buttonModule.getButton(btn.bdaddr);
+            publishButtonState(button, "released");
+            publishButtonAction(button, "none");
+        });
         buttonModule.on("buttonUpdated", addBtn("buttonUpdated"));
         buttonModule.on("buttonDeleted", function(btn) {
             logger.debug("buttonDeleted", JSON.stringify(btn, null, 4));
@@ -210,9 +237,15 @@ function makeButtonController(ha, buttonModule) {
             publishButtonMeta(btn);
         });
         buttonModule.on("buttonSingleOrDoubleClickOrHold", function(obj) {
+            if (resetActiontInv !== null) {
+                clearTimeout(resetActiontInv);
+            }
             var btn = buttonModule.getButton(obj.bdaddr);
             publishButtonAction(btn, obj.isSingleClick ? "click" : obj.isDoubleClick ? "double_click" : "hold");
             publishButtonMeta(btn);
+            resetActiontInv = setTimeout(function() {
+                publishButtonAction(btn, "none");
+            }, 500);
         });
         logger.info("Registering all buttons...");
         buttonModule.getButtons().forEach(registerButton);
@@ -311,8 +344,9 @@ function makeHAmqtt(mqttServer) {
     var registerEntity = function(name, component, nodeId, objectId, device) {
         var additionalProps = arguments.length > 5 && arguments[5] !== void 0 ? arguments[5] : {};
         var configtopic = genHAPrefix(component, nodeId, objectId) + "/config";
-        var configObj = _object_spread_props$1(_object_spread$2({}, additionalProps), {
-            name: name,
+        var configObj = _object_spread_props$1(_object_spread$2({
+            name: name
+        }, additionalProps), {
             state_topic: genFlicPrefix(nodeId, objectId),
             unique_id: "Flic_".concat(nodeId, "_").concat(objectId),
             device: device
@@ -381,22 +415,23 @@ var convertStr2Uint32Array = function(s) {
 };
 var makeOptions = function(opt) {
     return _object_spread$1({
-        debug: false
+        debug: false,
+        uniqueId: "0"
     }, opt);
 };
-var makeIRController = function(ir, ha, mqtt, uniqueId) {
-    var options = arguments.length > 4 && arguments[4] !== void 0 ? arguments[4] : {};
+var makeIRController = function(ir, ha, mqtt) {
+    var options = arguments.length > 3 && arguments[3] !== void 0 ? arguments[3] : {};
     options = makeOptions(options);
     var logger = makeLogger("ir", options.debug);
     var haDevice = {
         name: "IR",
         manufacturer: "Flic",
-        model: "".concat(NODE_ID).concat(uniqueId),
+        model: "".concat(NODE_ID).concat(options.uniqueId),
         identifiers: [
             "FlicHubIR"
         ]
     };
-    var nodeId = "".concat(NODE_ID).concat(uniqueId);
+    var nodeId = "".concat(NODE_ID).concat(options.uniqueId);
     var RECORD_SIGNAL_SET = ha.genFlicPrefix(nodeId, "record/set");
     var VALUE_SIGNAL_SET = ha.genFlicPrefix(nodeId, "signal/set");
     var VALUE_SIGNAL_STATE = ha.genFlicPrefix(nodeId, "signal");
@@ -1126,7 +1161,7 @@ function _object_spread_props(target, source) {
     }
     return target;
 }
-var start = function(buttonModule, irModule, uniqueId, options) {
+var start = function(buttonModule, irModule, options) {
     var mqttServer = create(options.mqtt.host, _object_spread_props(_object_spread({}, options.mqtt), {
         keep_alive: true
     }));
@@ -1136,10 +1171,14 @@ var start = function(buttonModule, irModule, uniqueId, options) {
     options.ha = (_options_ha = options.ha) !== null && _options_ha !== void 0 ? _options_ha : {};
     var _options_flicBtns;
     options.flicBtns = (_options_flicBtns = options.flicBtns) !== null && _options_flicBtns !== void 0 ? _options_flicBtns : {};
+    var _options_flicIR;
+    options.flicIR = (_options_flicIR = options.flicIR) !== null && _options_flicIR !== void 0 ? _options_flicIR : {};
     var _options_ha_debug, _ref;
     options.ha.debug = (_ref = (_options_ha_debug = options.ha.debug) !== null && _options_ha_debug !== void 0 ? _options_ha_debug : options.debug) !== null && _ref !== void 0 ? _ref : false;
     var _options_flicBtns_debug, _ref1;
     options.flicBtns.debug = (_ref1 = (_options_flicBtns_debug = options.flicBtns.debug) !== null && _options_flicBtns_debug !== void 0 ? _options_flicBtns_debug : options.debug) !== null && _ref1 !== void 0 ? _ref1 : false;
+    var _options_flicBtns_debug1, _ref2;
+    options.flicIR.debug = (_ref2 = (_options_flicBtns_debug1 = options.flicBtns.debug) !== null && _options_flicBtns_debug1 !== void 0 ? _options_flicBtns_debug1 : options.debug) !== null && _ref2 !== void 0 ? _ref2 : false;
     var ha = makeHAmqtt(mqttServer, options.ha);
     mqttServer.on("connected", function() {
         var _options_flicBtns, _options_flicIR;
@@ -1148,7 +1187,7 @@ var start = function(buttonModule, irModule, uniqueId, options) {
             makeButtonController(ha, buttonModule, options.flicBtns).start();
         }
         if (!((_options_flicIR = options.flicIR) === null || _options_flicIR === void 0 ? void 0 : _options_flicIR.disabled)) {
-            makeIRController(irModule, ha, mqttServer, uniqueId, options.flicIR).start();
+            makeIRController(irModule, ha, mqttServer, options.flicIR).start();
         }
         logger.info("all services up!");
     });

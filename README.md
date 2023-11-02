@@ -1,6 +1,25 @@
-# flic2hass
+# Flic2Hass
 
-A Flic SDK utility to publish all of your Flic buttons to Home Assistant via MQTT as well control the onboard IR module.
+This is a complete refactor of various previous versions of flic2hass. This version provides more features and even supports the onboard IR module!
+
+## Features
+
+### Complete Overview of Buttons
+
+![Alt text](images/btn.png)
+
+* Show connectivity state
+* Show click action types: `click` `hold` `double_click`
+* Detect presses: `released` `pressed`
+* Battery Logging
+* Extract firmware & sofware version numbers
+
+### IR Module Support
+
+* Record remote signals
+* Send remote signals
+
+![Alt text](images/ir.png)
 
 Requirements:
 
@@ -34,7 +53,6 @@ Requirements:
 require("./lib").start(
  require("buttons"),
  require("ir"),
- "0",
  {
   mqtt: {
    host: "set-this-to-yours",
@@ -84,7 +102,50 @@ The setup example contains just the bare minimum changes, if you wish to play ar
    },
    "flicIR": { 
       "disabled": false, // Do not publish IR events
-      "debug": false // Enable debug logging for IR related things
+      "debug": false, // Enable debug logging for IR related things
+      "uniqueId": "0", // Special identifier for your IR module (only change this value if you have more than 1 FlicHub or your hub somehow supports more than 1 IR modules)
    },
 }
 ```
+
+## How to record & send IR messages
+
+### Record Signal
+
+1. Toggle the "Record Signal Entity" to `on`
+
+   ![Alt text](images/ir-on.png)
+
+2. Point the remote at your recievet dongle and press the button you want to use
+
+3. The signal should show up in the "Signal Textbox Entity" and the "Record Signal Entity" will be automatically switched off
+
+   ![Alt text](images/ir-recorded.png)
+
+4. Copy the content of the "Signal Textbox Entity" to use during replaying of the signal
+
+*Tip*: if nothing gets recorded, please check the logs in the flichubsdk
+
+### Play Signal
+
+1. Copy the signal you want to play into the "Signal Textbox Entity"
+
+   ![Alt text](images/ir-recorded.png)
+
+2. Press the "Play Signal" button
+
+*Tip*: if nothing happens when you play, check that the signal you copied is correctly showing in the logs in the flichubsdk
+
+### FAQ
+
+* Why is the battery always 100%?
+
+   I found that with some of my buttons as well the battery is reported to always be 100%, this seems to me like an issue with either the hub itself or the buttons. Will need to open a ticket to have Flic Inc to explain to us why.
+
+* Will you support the Twist?
+
+   I don't have a twist to test yet, though it seems that the [SDK does not support](https://community.flic.io/topic/18319/update-sdk-to-use-the-flictwist/15?_=1698935936114&lang=en-US) this yet, so I won't be able to support it either. I will contemplate buying one once the support is there!
+
+* Can you add support for audio?
+
+   It seems that the SDK does not have support to control the onboard audio. I did post this on the [community board so +1](https://community.flic.io/topic/18350/add-support-for-playing-sounds) and maybe it will get there!

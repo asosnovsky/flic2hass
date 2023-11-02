@@ -62,8 +62,8 @@ export function makeHAmqtt(
     ) => {
         const configtopic = genHAPrefix(component, nodeId, objectId) + "/config"
         const configObj = {
-            ...additionalProps,
             name,
+            ...additionalProps,
             state_topic: genFlicPrefix(nodeId, objectId),
             unique_id: `Flic_${nodeId}_${objectId}`,
             device,

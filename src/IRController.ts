@@ -16,17 +16,18 @@ const convertStr2Uint32Array = (s: string): Uint32Array => {
     return new Uint32Array(a.slice(0, a.length - 2).map(v => parseInt(v, 32)))
 }
 export type IRControllerOpt = {
+    uniqueId: string,
     debug: boolean;
 }
 export const makeOptions = (opt: Partial<IRControllerOpt>): IRControllerOpt => ({
     debug: false,
+    uniqueId: "0",
     ...opt,
 })
 export const makeIRController = (
     ir: IRModule,
     ha: HAmqtt,
     mqtt: MQTT,
-    uniqueId: string,
     options: Partial<IRControllerOpt> = {},
 ) => {
     options = makeOptions(options);
@@ -34,10 +35,10 @@ export const makeIRController = (
     const haDevice: HADevice = {
         name: 'IR',
         manufacturer: 'Flic',
-        model: `${NODE_ID}${uniqueId}`,
+        model: `${NODE_ID}${options.uniqueId}`,
         identifiers: ['FlicHubIR']
     }
-    const nodeId = `${NODE_ID}${uniqueId}`;
+    const nodeId = `${NODE_ID}${options.uniqueId}`;
     const RECORD_SIGNAL_SET = ha.genFlicPrefix(nodeId, 'record/set');
     const VALUE_SIGNAL_SET = ha.genFlicPrefix(nodeId, 'signal/set');
     const VALUE_SIGNAL_STATE = ha.genFlicPrefix(nodeId, 'signal');
