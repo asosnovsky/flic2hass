@@ -6,7 +6,7 @@ This is a complete refactor of various previous versions of flic2hass. This vers
 
 ### Complete Overview of Buttons
 
-![Alt text](images/btn.png)
+![Alt text](images/button-eg.png)
 
 * Show connectivity state
 * Show click action types: `click` `hold` `double_click`
@@ -20,7 +20,7 @@ This is a complete refactor of various previous versions of flic2hass. This vers
 * Record remote signals
 * Send remote signals
 
-![Alt text](images/ir.png)
+![Alt text](images/ir-eg.png)
 
 Requirements:
 
