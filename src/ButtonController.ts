@@ -48,6 +48,27 @@ export function makeButtonController(
         logger.info('Registering', JSON.stringify(button, null, 4))
         const haDevice = getDeviceFromButton(button);
         Object.keys(ENTITIES).forEach(objectId => {
+            let avl = {
+                availability: [
+                    {
+                        payload_available: 'ON',
+                        payload_not_available: 'OFF',
+                        topic: ha.genFlicPrefix(genButtonUniqueId(button.bdaddr), 'ready')
+                    },
+                    {
+                        payload_available: 'ON',
+                        payload_not_available: 'OFF',
+                        topic: ha.genFlicPrefix(genButtonUniqueId(button.bdaddr), 'lifeline')
+                    },
+                ],
+                availability_mode: 'all',
+            };
+            if (objectId === 'lifeline') {
+                avl = {}
+            }
+            if (objectId === 'ready' || objectId == 'connected') {
+                avl.availability = [avl.availability[1]]
+            }
             ha.registerEntity(
                 `Button ${objectId}`,
                 ENTITIES[objectId][0],
@@ -56,20 +77,7 @@ export function makeButtonController(
                 haDevice,
                 {
                     ...ENTITIES[objectId][1],
-                    availability: [
-                        {
-                            payload_available: 'ON',
-                            payload_not_available: 'OFF',
-                            topic: ha.genFlicPrefix(genButtonUniqueId(button.bdaddr), 'ready')
-                        },
-                        {
-                            payload_available: 'ON',
-                            payload_not_available: 'OFF',
-                            topic: ha.genFlicPrefix(genButtonUniqueId(button.bdaddr), 'lifeline')
-                        },
-                    ],
-                    availability_mode: 'all',
-
+                    ...avl
                 },
             )
         });

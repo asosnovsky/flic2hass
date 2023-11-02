@@ -54,30 +54,6 @@ function _object_spread$3(target) {
     }
     return target;
 }
-function ownKeys$2(object, enumerableOnly) {
-    var keys = Object.keys(object);
-    if (Object.getOwnPropertySymbols) {
-        var symbols = Object.getOwnPropertySymbols(object);
-        if (enumerableOnly) {
-            symbols = symbols.filter(function(sym) {
-                return Object.getOwnPropertyDescriptor(object, sym).enumerable;
-            });
-        }
-        keys.push.apply(keys, symbols);
-    }
-    return keys;
-}
-function _object_spread_props$2(target, source) {
-    source = source != null ? source : {};
-    if (Object.getOwnPropertyDescriptors) {
-        Object.defineProperties(target, Object.getOwnPropertyDescriptors(source));
-    } else {
-        ownKeys$2(Object(source)).forEach(function(key) {
-            Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
-        });
-    }
-    return target;
-}
 var makeOptions$2 = function(opt) {
     return _object_spread$3({
         debug: false
@@ -185,7 +161,7 @@ function makeButtonController(ha, buttonModule) {
         logger.info("Registering", JSON.stringify(button, null, 4));
         var haDevice = getDeviceFromButton(button);
         Object.keys(ENTITIES).forEach(function(objectId) {
-            ha.registerEntity("Button ".concat(objectId), ENTITIES[objectId][0], genButtonUniqueId(button.bdaddr), objectId, haDevice, _object_spread_props$2(_object_spread$3({}, ENTITIES[objectId][1]), {
+            var avl = {
                 availability: [
                     {
                         payload_available: "ON",
@@ -199,7 +175,16 @@ function makeButtonController(ha, buttonModule) {
                     }
                 ],
                 availability_mode: "all"
-            }));
+            };
+            if (objectId === "lifeline") {
+                avl = {};
+            }
+            if (objectId === "ready" || objectId == "connected") {
+                avl.availability = [
+                    avl.availability[1]
+                ];
+            }
+            ha.registerEntity("Button ".concat(objectId), ENTITIES[objectId][0], genButtonUniqueId(button.bdaddr), objectId, haDevice, _object_spread$3({}, ENTITIES[objectId][1], avl));
         });
     };
     var deregisterButton = function(button) {
