@@ -149,3 +149,7 @@ The setup example contains just the bare minimum changes, if you wish to play ar
 * Can you add support for audio?
 
    It seems that the SDK does not have support to control the onboard audio. I did post this on the [community board so +1](https://community.flic.io/topic/18350/add-support-for-playing-sounds) and maybe it will get there!
+
+* Can you add support for LED control?
+
+   This is also not yet [supported by SDK](https://community.flic.io/topic/18197/flic-button-led-control/3)
