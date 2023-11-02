@@ -142,7 +142,8 @@ var ENTITIES = {
         {
             type: "button_short_press",
             subtype: "button_1",
-            automation_type: "trigger"
+            automation_type: "trigger",
+            payload: "ON"
         }
     ],
     button_long_press: [
@@ -150,7 +151,8 @@ var ENTITIES = {
         {
             type: "button_long_press",
             subtype: "button_1",
-            automation_type: "trigger"
+            automation_type: "trigger",
+            payload: "ON"
         }
     ],
     button_double_press: [
@@ -158,7 +160,8 @@ var ENTITIES = {
         {
             type: "button_double_press",
             subtype: "button_1",
-            automation_type: "trigger"
+            automation_type: "trigger",
+            payload: "ON"
         }
     ]
 };
@@ -177,7 +180,8 @@ function makeButtonController(ha, buttonModule) {
             manufacturer: "Flic",
             model: "v".concat(button.flicVersion, "_").concat(button.color.trim().length > 0 ? button.color : "white"),
             sw: String(button.firmwareVersion),
-            hw: String(button.flicVersion)
+            hw: String(button.flicVersion),
+            configuration_url: "https://hubsdk.flic.io/"
         };
     };
     var genButtonUniqueId = function(bdaddr) {
@@ -481,7 +485,8 @@ var makeIRController = function(ir, ha, mqtt) {
         model: "".concat(NODE_ID).concat(options.uniqueId),
         identifiers: [
             "FlicHubIR"
-        ]
+        ],
+        configuration_url: "https://hubsdk.flic.io/"
     };
     var nodeId = "".concat(NODE_ID).concat(options.uniqueId);
     var LIFELINE_SGINAL = ha.genFlicPrefix(nodeId, "lifeline");
