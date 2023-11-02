@@ -39,10 +39,18 @@ export const makeIRController = (
         identifiers: ['FlicHubIR']
     }
     const nodeId = `${NODE_ID}${options.uniqueId}`;
+    const LIFELINE_SGINAL = ha.genFlicPrefix(nodeId, 'lifeline');
     const RECORD_SIGNAL_SET = ha.genFlicPrefix(nodeId, 'record/set');
     const VALUE_SIGNAL_SET = ha.genFlicPrefix(nodeId, 'signal/set');
     const VALUE_SIGNAL_STATE = ha.genFlicPrefix(nodeId, 'signal');
     const PLAY_SIGNAL_SET = ha.genFlicPrefix(nodeId, 'play/set');
+    const availability = [
+        {
+            "payload_available": "ON",
+            "payload_not_available": "OFF",
+            "topic": LIFELINE_SGINAL,
+        }
+    ]
     let currentSignal: string | null = null;
 
     const set_topics = [
@@ -57,6 +65,18 @@ export const makeIRController = (
             logger.info('starting...')
             logger.debug('setting up entities...')
             ha.registerEntity(
+                'IR Available',
+                'binary_sensor',
+                nodeId,
+                'lifeline',
+                haDevice,
+                {
+                    device_class: 'connectivity',
+                    expire_after: 5,
+                    entity_category: "diagnostic",
+                }
+            )
+            ha.registerEntity(
                 'Record Signal',
                 'switch',
                 nodeId,
@@ -66,6 +86,7 @@ export const makeIRController = (
                     icon: 'mdi:record-rec',
                     command_topic: RECORD_SIGNAL_SET,
                     device_class: 'switch',
+                    availability,
                 }
             )
             ha.registerEntity(
@@ -78,6 +99,7 @@ export const makeIRController = (
                     command_topic: VALUE_SIGNAL_SET,
                     icon: 'mdi:broadcast',
                     max: 255,
+                    availability,
                 }
             )
             ha.registerEntity(
@@ -89,6 +111,7 @@ export const makeIRController = (
                 {
                     icon: 'mdi:play',
                     command_topic: PLAY_SIGNAL_SET,
+                    availability,
                 }
             )
             logger.debug('setting default states....')
@@ -140,6 +163,9 @@ export const makeIRController = (
 
             logger.debug('subscribing to', set_topics)
             mqtt.subscribe(set_topics)
+            setInterval(() => {
+                ha.publishState(nodeId, 'lifeline', 'ON')
+            }, 2500)
             logger.info('is up')
         }
     }

@@ -15,12 +15,13 @@ export const makeOptions = (opt: Partial<ButtonControllerOpt>): ButtonController
 const ENTITIES: Record<string, [HAComponent, Record<string, any>]> = {
     "action": ['sensor', { icon: 'mdi:gesture-tap-button', name: "Click Action" }],
     "state": ['sensor', { icon: 'mdi:radiobox-indeterminate-variant' }],
-    "battery": ['sensor', { unit_of_measurement: '%', device_class: 'battery' }],
-    "batteryLastUpdate": ['sensor', { name: "Battery Last Update Time", device_class: "duration", unit_of_measurement: "s" }],
-    "connected": ['binary_sensor', { device_class: 'connectivity', name: "Connection Established" }],
-    "ready": ['binary_sensor', { device_class: 'connectivity', name: "Connection Verified" }],
-    "activeDisconnect": ['binary_sensor', { name: "User Active Disconnect" }],
-    "passive": ['binary_sensor', { name: "Passive Mode" }],
+    "battery": ['sensor', { expire_after: 5, unit_of_measurement: '%', device_class: 'battery' }],
+    "batteryLastUpdate": ['sensor', { entity_category: "diagnostic", expire_after: 5, name: "Battery Last Update Time", device_class: "duration", unit_of_measurement: "s" }],
+    "lifeline": ['binary_sensor', { entity_category: "diagnostic", expire_after: 5, name: "Flichub Connected", device_class: "connectivity", unit_of_measurement: "s" }],
+    "connected": ['binary_sensor', { entity_category: "diagnostic", expire_after: 5, device_class: 'connectivity', name: "Connection Established" }],
+    "ready": ['binary_sensor', { entity_category: "config", expire_after: 5, device_class: 'connectivity', name: "Connection Verified" }],
+    "activeDisconnect": ['binary_sensor', { entity_category: "config", expire_after: 5, name: "User Active Disconnect" }],
+    "passive": ['binary_sensor', { entity_category: "config", expire_after: 5, name: "Passive Mode" }],
 }
 export type ButtonController = ReturnType<typeof makeButtonController>;
 export function makeButtonController(
@@ -61,8 +62,14 @@ export function makeButtonController(
                             payload_not_available: 'OFF',
                             topic: ha.genFlicPrefix(genButtonUniqueId(button.bdaddr), 'ready')
                         },
+                        {
+                            payload_available: 'ON',
+                            payload_not_available: 'OFF',
+                            topic: ha.genFlicPrefix(genButtonUniqueId(button.bdaddr), 'lifeline')
+                        },
                     ],
                     availability_mode: 'all',
+
                 },
             )
         });
@@ -90,6 +97,7 @@ export function makeButtonController(
         ha.publishState(genButtonUniqueId(button.bdaddr), 'ready', button.ready ? 'ON' : "OFF");
         ha.publishState(genButtonUniqueId(button.bdaddr), 'activeDisconnect', button.activeDisconnect ? 'ON' : "OFF");
         ha.publishState(genButtonUniqueId(button.bdaddr), 'passive', button.activeDisconnect ? 'ON' : "OFF");
+        ha.publishState(genButtonUniqueId(button.bdaddr), 'lifeline', 'ON');
     }
     const addBtn = (eventName: string) => (obj: { bdaddr: string }) => {
         const button = buttonModule.getButton(obj.bdaddr);
@@ -142,7 +150,7 @@ export function makeButtonController(
         });
         logger.info("Registering all buttons...")
         buttonModule.getButtons().forEach(registerButton);
-        setInterval(() => buttonModule.getButtons().forEach(publishButtonMeta), 1000);
+        setInterval(() => buttonModule.getButtons().forEach(publishButtonMeta), 3000);
         logger.info('is up')
     }
 

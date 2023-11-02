@@ -100,6 +100,7 @@ var ENTITIES = {
     battery: [
         "sensor",
         {
+            expire_after: 5,
             unit_of_measurement: "%",
             device_class: "battery"
         }
@@ -107,14 +108,28 @@ var ENTITIES = {
     batteryLastUpdate: [
         "sensor",
         {
+            entity_category: "diagnostic",
+            expire_after: 5,
             name: "Battery Last Update Time",
             device_class: "duration",
+            unit_of_measurement: "s"
+        }
+    ],
+    lifeline: [
+        "binary_sensor",
+        {
+            entity_category: "diagnostic",
+            expire_after: 5,
+            name: "Flichub Connected",
+            device_class: "connectivity",
             unit_of_measurement: "s"
         }
     ],
     connected: [
         "binary_sensor",
         {
+            entity_category: "diagnostic",
+            expire_after: 5,
             device_class: "connectivity",
             name: "Connection Established"
         }
@@ -122,6 +137,8 @@ var ENTITIES = {
     ready: [
         "binary_sensor",
         {
+            entity_category: "config",
+            expire_after: 5,
             device_class: "connectivity",
             name: "Connection Verified"
         }
@@ -129,12 +146,16 @@ var ENTITIES = {
     activeDisconnect: [
         "binary_sensor",
         {
+            entity_category: "config",
+            expire_after: 5,
             name: "User Active Disconnect"
         }
     ],
     passive: [
         "binary_sensor",
         {
+            entity_category: "config",
+            expire_after: 5,
             name: "Passive Mode"
         }
     ]
@@ -170,6 +191,11 @@ function makeButtonController(ha, buttonModule) {
                         payload_available: "ON",
                         payload_not_available: "OFF",
                         topic: ha.genFlicPrefix(genButtonUniqueId(button.bdaddr), "ready")
+                    },
+                    {
+                        payload_available: "ON",
+                        payload_not_available: "OFF",
+                        topic: ha.genFlicPrefix(genButtonUniqueId(button.bdaddr), "lifeline")
                     }
                 ],
                 availability_mode: "all"
@@ -195,6 +221,7 @@ function makeButtonController(ha, buttonModule) {
         ha.publishState(genButtonUniqueId(button.bdaddr), "ready", button.ready ? "ON" : "OFF");
         ha.publishState(genButtonUniqueId(button.bdaddr), "activeDisconnect", button.activeDisconnect ? "ON" : "OFF");
         ha.publishState(genButtonUniqueId(button.bdaddr), "passive", button.activeDisconnect ? "ON" : "OFF");
+        ha.publishState(genButtonUniqueId(button.bdaddr), "lifeline", "ON");
     };
     var addBtn = function(eventName) {
         return function(obj) {
@@ -251,7 +278,7 @@ function makeButtonController(ha, buttonModule) {
         buttonModule.getButtons().forEach(registerButton);
         setInterval(function() {
             return buttonModule.getButtons().forEach(publishButtonMeta);
-        }, 1000);
+        }, 3000);
         logger.info("is up");
     };
     return {
@@ -432,10 +459,18 @@ var makeIRController = function(ir, ha, mqtt) {
         ]
     };
     var nodeId = "".concat(NODE_ID).concat(options.uniqueId);
+    var LIFELINE_SGINAL = ha.genFlicPrefix(nodeId, "lifeline");
     var RECORD_SIGNAL_SET = ha.genFlicPrefix(nodeId, "record/set");
     var VALUE_SIGNAL_SET = ha.genFlicPrefix(nodeId, "signal/set");
     var VALUE_SIGNAL_STATE = ha.genFlicPrefix(nodeId, "signal");
     var PLAY_SIGNAL_SET = ha.genFlicPrefix(nodeId, "play/set");
+    var availability = [
+        {
+            payload_available: "ON",
+            payload_not_available: "OFF",
+            topic: LIFELINE_SGINAL
+        }
+    ];
     var currentSignal = null;
     var set_topics = [
         RECORD_SIGNAL_SET,
@@ -447,19 +482,27 @@ var makeIRController = function(ir, ha, mqtt) {
         start: function start() {
             logger.info("starting...");
             logger.debug("setting up entities...");
+            ha.registerEntity("IR Available", "binary_sensor", nodeId, "lifeline", haDevice, {
+                device_class: "connectivity",
+                expire_after: 5,
+                entity_category: "diagnostic"
+            });
             ha.registerEntity("Record Signal", "switch", nodeId, "record", haDevice, {
                 icon: "mdi:record-rec",
                 command_topic: RECORD_SIGNAL_SET,
-                device_class: "switch"
+                device_class: "switch",
+                availability: availability
             });
             ha.registerEntity("Signal", "text", nodeId, "signal", haDevice, {
                 command_topic: VALUE_SIGNAL_SET,
                 icon: "mdi:broadcast",
-                max: 255
+                max: 255,
+                availability: availability
             });
             ha.registerEntity("Play Signal", "button", nodeId, "play", haDevice, {
                 icon: "mdi:play",
-                command_topic: PLAY_SIGNAL_SET
+                command_topic: PLAY_SIGNAL_SET,
+                availability: availability
             });
             logger.debug("setting default states....");
             ha.publishState(nodeId, "record", "OFF");
@@ -520,6 +563,9 @@ var makeIRController = function(ir, ha, mqtt) {
             });
             logger.debug("subscribing to", set_topics);
             mqtt.subscribe(set_topics);
+            setInterval(function() {
+                ha.publishState(nodeId, "lifeline", "ON");
+            }, 2500);
             logger.info("is up");
         }
     };
