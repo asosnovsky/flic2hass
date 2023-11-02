@@ -136,6 +136,30 @@ var ENTITIES = {
             expire_after: 5,
             name: "Passive Mode"
         }
+    ],
+    button_short_press: [
+        "device_automation",
+        {
+            type: "button_short_press",
+            subtype: "button_1",
+            automation_type: "trigger"
+        }
+    ],
+    button_long_press: [
+        "device_automation",
+        {
+            type: "button_long_press",
+            subtype: "button_1",
+            automation_type: "trigger"
+        }
+    ],
+    button_double_press: [
+        "device_automation",
+        {
+            type: "button_double_press",
+            subtype: "button_1",
+            automation_type: "trigger"
+        }
     ]
 };
 function makeButtonController(ha, buttonModule) {
@@ -186,6 +210,9 @@ function makeButtonController(ha, buttonModule) {
                     avl.availability[1]
                 ];
             }
+            if (ENTITIES[objectId][0] === "device_automation") {
+                avl = {};
+            }
             ha.registerEntity("Button ".concat(objectId), ENTITIES[objectId][0], genButtonUniqueId(button.bdaddr), objectId, haDevice, _object_spread$3({}, ENTITIES[objectId][1], avl));
         });
     };
@@ -200,6 +227,13 @@ function makeButtonController(ha, buttonModule) {
     };
     var publishButtonAction = function(button, state) {
         ha.publishState(genButtonUniqueId(button.bdaddr), "action", state);
+        if (state === "click") {
+            ha.publishState(genButtonUniqueId(button.bdaddr), "button_short_press", "ON");
+        } else if (state === "double_click") {
+            ha.publishState(genButtonUniqueId(button.bdaddr), "button_double_press", "ON");
+        } else if (state === "hold") {
+            ha.publishState(genButtonUniqueId(button.bdaddr), "button_long_press", "ON");
+        }
     };
     var publishButtonMeta = function(button) {
         ha.publishState(genButtonUniqueId(button.bdaddr), "battery", button.batteryStatus);
@@ -358,10 +392,14 @@ function makeHAmqtt(mqttServer) {
     var registerEntity = function(name, component, nodeId, objectId, device) {
         var additionalProps = arguments.length > 5 && arguments[5] !== void 0 ? arguments[5] : {};
         var configtopic = genHAPrefix(component, nodeId, objectId) + "/config";
+        if (component === "device_automation") {
+            additionalProps.topic = genFlicPrefix(nodeId, objectId);
+        } else {
+            additionalProps.state_topic = genFlicPrefix(nodeId, objectId);
+        }
         var configObj = _object_spread_props$1(_object_spread$2({
             name: name
         }, additionalProps), {
-            state_topic: genFlicPrefix(nodeId, objectId),
             unique_id: "Flic_".concat(nodeId, "_").concat(objectId),
             device: device
         });

@@ -36,7 +36,8 @@ export const makeIRController = (
         name: 'IR',
         manufacturer: 'Flic',
         model: `${NODE_ID}${options.uniqueId}`,
-        identifiers: ['FlicHubIR']
+        identifiers: ['FlicHubIR'],
+        configuration_url: "https://hubsdk.flic.io/",
     }
     const nodeId = `${NODE_ID}${options.uniqueId}`;
     const LIFELINE_SGINAL = ha.genFlicPrefix(nodeId, 'lifeline');

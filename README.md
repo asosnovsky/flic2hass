@@ -1,4 +1,4 @@
-# Flic2Hass
+# Flic2Hass ![GitHub package.json version (subfolder of monorepo)](https://img.shields.io/github/package-json/v/asosnovsky/flic2hass)
 
 This is a complete refactor of various previous versions of flic2hass. This version provides more features and even supports the onboard IR module!
 
@@ -10,6 +10,7 @@ This is a complete refactor of various previous versions of flic2hass. This vers
 
 * Show connectivity state
 * Show click action types: `click` `hold` `double_click`
+* Device emits automation events
 * Detect presses: `released` `pressed`
 * Battery Logging
 * Extract firmware & sofware version numbers

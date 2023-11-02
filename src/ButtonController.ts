@@ -22,6 +22,18 @@ const ENTITIES: Record<string, [HAComponent, Record<string, any>]> = {
     "ready": ['binary_sensor', { entity_category: "config", expire_after: 5, device_class: 'connectivity', name: "Connection Verified" }],
     "activeDisconnect": ['binary_sensor', { entity_category: "config", expire_after: 5, name: "User Active Disconnect" }],
     "passive": ['binary_sensor', { entity_category: "config", expire_after: 5, name: "Passive Mode" }],
+    "button_short_press": [
+        'device_automation',
+        { 'type': 'button_short_press', 'subtype': 'button_1', 'automation_type': 'trigger', 'payload': 'ON' }
+    ],
+    "button_long_press": [
+        'device_automation',
+        { 'type': 'button_long_press', 'subtype': 'button_1', 'automation_type': 'trigger', 'payload': 'ON' }
+    ],
+    "button_double_press": [
+        'device_automation',
+        { 'type': 'button_double_press', 'subtype': 'button_1', 'automation_type': 'trigger', 'payload': 'ON' }
+    ]
 }
 export type ButtonController = ReturnType<typeof makeButtonController>;
 export function makeButtonController(
@@ -41,6 +53,7 @@ export function makeButtonController(
             model: `v${button.flicVersion}_${button.color.trim().length > 0 ? button.color : 'white'}`,
             sw: String(button.firmwareVersion),
             hw: String(button.flicVersion),
+            configuration_url: "https://hubsdk.flic.io/",
         }
     }
     const genButtonUniqueId = (bdaddr: string): string => bdaddr.replace(/:/g, '_')
@@ -48,7 +61,7 @@ export function makeButtonController(
         logger.info('Registering', JSON.stringify(button, null, 4))
         const haDevice = getDeviceFromButton(button);
         Object.keys(ENTITIES).forEach(objectId => {
-            let avl = {
+            let avl: any = {
                 availability: [
                     {
                         payload_available: 'ON',
@@ -68,6 +81,9 @@ export function makeButtonController(
             }
             if (objectId === 'ready' || objectId == 'connected') {
                 avl.availability = [avl.availability[1]]
+            }
+            if (ENTITIES[objectId][0] === 'device_automation') {
+                avl = {}
             }
             ha.registerEntity(
                 `Button ${objectId}`,
@@ -95,8 +111,15 @@ export function makeButtonController(
     const publishButtonState = (button: Button, state: 'released' | 'pressed') => {
         ha.publishState(genButtonUniqueId(button.bdaddr), 'state', state);
     }
-    const publishButtonAction = (button: Button, state: string) => {
+    const publishButtonAction = (button: Button, state: 'click' | 'double_click' | 'hold') => {
         ha.publishState(genButtonUniqueId(button.bdaddr), 'action', state);
+        if (state === 'click') {
+            ha.publishState(genButtonUniqueId(button.bdaddr), 'button_short_press', 'ON')
+        } else if (state === 'double_click') {
+            ha.publishState(genButtonUniqueId(button.bdaddr), 'button_double_press', 'ON')
+        } else if (state === 'hold') {
+            ha.publishState(genButtonUniqueId(button.bdaddr), 'button_long_press', 'ON')
+        }
     }
     const publishButtonMeta = (button: Button) => {
         ha.publishState(genButtonUniqueId(button.bdaddr), 'battery', button.batteryStatus);

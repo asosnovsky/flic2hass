@@ -19,8 +19,9 @@ export type HADevice = {
     model: string,
     sw?: string,
     hw?: string,
+    configuration_url?: string,
 }
-export type HAComponent = 'sensor' | 'binary_sensor' | 'button' | 'switch' | 'text';
+export type HAComponent = 'sensor' | 'binary_sensor' | 'button' | 'switch' | 'text' | 'device_automation';
 export const makeOptions = (opt: Partial<HAmqttOptions>): HAmqttOptions => ({
     debug: false,
     ...opt,
@@ -61,10 +62,14 @@ export function makeHAmqtt(
         additionalProps: Record<string, any> = {},
     ) => {
         const configtopic = genHAPrefix(component, nodeId, objectId) + "/config"
+        if (component === 'device_automation') {
+            additionalProps.topic = genFlicPrefix(nodeId, objectId)
+        } else {
+            additionalProps.state_topic = genFlicPrefix(nodeId, objectId)
+        }
         const configObj = {
             name,
             ...additionalProps,
-            state_topic: genFlicPrefix(nodeId, objectId),
             unique_id: `Flic_${nodeId}_${objectId}`,
             device,
         };
