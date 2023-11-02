@@ -47,7 +47,7 @@ export const makeIRController = (
     const availability = [
         {
             "payload_available": "ON",
-            "payload_not_available": "OFF",
+            "payload_not_available": "unavailable",
             "topic": LIFELINE_SGINAL,
         }
     ]
@@ -73,7 +73,10 @@ export const makeIRController = (
                 {
                     device_class: 'connectivity',
                     expire_after: 5,
+                    off_delay: 3,
                     entity_category: "diagnostic",
+                    payload_available: "ON",
+                    payload_not_available: "OFF",
                 }
             )
             ha.registerEntity(

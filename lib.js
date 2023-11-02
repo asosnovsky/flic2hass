@@ -98,7 +98,8 @@ var ENTITIES = {
             expire_after: 5,
             name: "Flichub Connected",
             device_class: "connectivity",
-            unit_of_measurement: "s"
+            unit_of_measurement: "s",
+            payload_not_available: "OFF"
         }
     ],
     connected: [
@@ -107,7 +108,8 @@ var ENTITIES = {
             entity_category: "diagnostic",
             expire_after: 5,
             device_class: "connectivity",
-            name: "Connection Established"
+            name: "Connection Established",
+            payload_not_available: "OFF"
         }
     ],
     ready: [
@@ -165,12 +167,12 @@ function makeButtonController(ha, buttonModule) {
                 availability: [
                     {
                         payload_available: "ON",
-                        payload_not_available: "OFF",
+                        payload_not_available: "unavailable",
                         topic: ha.genFlicPrefix(genButtonUniqueId(button.bdaddr), "ready")
                     },
                     {
                         payload_available: "ON",
-                        payload_not_available: "OFF",
+                        payload_not_available: "unavailable",
                         topic: ha.genFlicPrefix(genButtonUniqueId(button.bdaddr), "lifeline")
                     }
                 ],
@@ -452,7 +454,7 @@ var makeIRController = function(ir, ha, mqtt) {
     var availability = [
         {
             payload_available: "ON",
-            payload_not_available: "OFF",
+            payload_not_available: "unavailable",
             topic: LIFELINE_SGINAL
         }
     ];
@@ -470,7 +472,10 @@ var makeIRController = function(ir, ha, mqtt) {
             ha.registerEntity("IR Available", "binary_sensor", nodeId, "lifeline", haDevice, {
                 device_class: "connectivity",
                 expire_after: 5,
-                entity_category: "diagnostic"
+                off_delay: 3,
+                entity_category: "diagnostic",
+                payload_available: "ON",
+                payload_not_available: "OFF"
             });
             ha.registerEntity("Record Signal", "switch", nodeId, "record", haDevice, {
                 icon: "mdi:record-rec",

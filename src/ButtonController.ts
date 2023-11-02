@@ -17,8 +17,8 @@ const ENTITIES: Record<string, [HAComponent, Record<string, any>]> = {
     "state": ['sensor', { icon: 'mdi:radiobox-indeterminate-variant' }],
     "battery": ['sensor', { expire_after: 5, unit_of_measurement: '%', device_class: 'battery' }],
     "batteryLastUpdate": ['sensor', { entity_category: "diagnostic", expire_after: 5, name: "Battery Last Update Time", device_class: "duration", unit_of_measurement: "s" }],
-    "lifeline": ['binary_sensor', { entity_category: "diagnostic", expire_after: 5, name: "Flichub Connected", device_class: "connectivity", unit_of_measurement: "s" }],
-    "connected": ['binary_sensor', { entity_category: "diagnostic", expire_after: 5, device_class: 'connectivity', name: "Connection Established" }],
+    "lifeline": ['binary_sensor', { entity_category: "diagnostic", expire_after: 5, name: "Flichub Connected", device_class: "connectivity", unit_of_measurement: "s", payload_not_available: "OFF" }],
+    "connected": ['binary_sensor', { entity_category: "diagnostic", expire_after: 5, device_class: 'connectivity', name: "Connection Established", payload_not_available: "OFF" }],
     "ready": ['binary_sensor', { entity_category: "config", expire_after: 5, device_class: 'connectivity', name: "Connection Verified" }],
     "activeDisconnect": ['binary_sensor', { entity_category: "config", expire_after: 5, name: "User Active Disconnect" }],
     "passive": ['binary_sensor', { entity_category: "config", expire_after: 5, name: "Passive Mode" }],
@@ -52,12 +52,12 @@ export function makeButtonController(
                 availability: [
                     {
                         payload_available: 'ON',
-                        payload_not_available: 'OFF',
+                        payload_not_available: 'unavailable',
                         topic: ha.genFlicPrefix(genButtonUniqueId(button.bdaddr), 'ready')
                     },
                     {
                         payload_available: 'ON',
-                        payload_not_available: 'OFF',
+                        payload_not_available: 'unavailable',
                         topic: ha.genFlicPrefix(genButtonUniqueId(button.bdaddr), 'lifeline')
                     },
                 ],
