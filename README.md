@@ -1,5 +1,8 @@
 # Flic2Hass ![GitHub package.json version (subfolder of monorepo)](https://img.shields.io/github/package-json/v/asosnovsky/flic2hass)
 
+
+> <a href='https://ko-fi.com/J3J8C4RB7' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://cdn.ko-fi.com/cdn/kofi1.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
+
 This is a complete refactor of various previous versions of flic2hass. This version provides more features and even supports the onboard IR module!
 
 ## Features
