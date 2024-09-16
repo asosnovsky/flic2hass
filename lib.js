@@ -928,6 +928,13 @@ MQTT.prototype.packetHandler = function(data) {
     }
     // Get the data for this packet
     var pData = data.slice(1 + dLen.lenBy, pLen);
+
+    // Avoid an infinite data emit loop
+    if (pData.length < 1) {
+        this.partData = data;
+        return;
+    }
+
     // more than one packet? re-emit it so we handle it later
     if (data.length > pLen) {
         this.client.emit("data", data.slice(pLen, data.length));
