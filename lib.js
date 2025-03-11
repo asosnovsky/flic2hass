@@ -705,7 +705,7 @@ Uint8Array.prototype.charCodeAt = function(a, b) {
     this.client = false;
     this.connected = false;
     /* if keep_alive is less than the ping interval we need to use
-    a shorter ping interval, otherwise we'll just time out! */ this.ping_interval = this.keep_alive < this.C.PING_INTERVAL ? this.keep_alive - 5 : this.C.PING_INTERVAL;
+      a shorter ping interval, otherwise we'll just time out! */ this.ping_interval = this.keep_alive < this.C.PING_INTERVAL ? this.keep_alive - 5 : this.C.PING_INTERVAL;
     this.protocol_name = options.protocol_name || "MQTT";
     this.protocol_level = options.protocol_level || C.PROTOCOL_LEVEL;
     if (typeof this.client_id == "string") {
@@ -926,15 +926,13 @@ MQTT.prototype.packetHandler = function(data) {
         this.partData = data;
         return;
     }
-    // Get the data for this packet
-    var pData = data.slice(1 + dLen.lenBy, pLen);
-
-    // Avoid an infinite data emit loop
-    if (pData.length < 1) {
-        this.partData = data;
+    // Allow zero-size pData, but detect if its indexes
+    // will go out of bounds.
+    if (1 + dLen.lenBy >= data.length) {
         return;
     }
-
+    // Get the data for this packet
+    var pData = data.slice(1 + dLen.lenBy, pLen);
     // more than one packet? re-emit it so we handle it later
     if (data.length > pLen) {
         this.client.emit("data", data.slice(pLen, data.length));
@@ -1091,11 +1089,11 @@ MQTT.prototype.packetHandler = function(data) {
     this.client = false;
 };
 /** Publish message using specified topic.
-  opts = {
-    retain: bool // the server should retain this message and send it out again to new subscribers
-    dup : bool   // indicate the message is a duplicate because original wasn't ACKed (QoS > 0 only)
-  }
-*/ MQTT.prototype.publish = function(topic, message, opts) {
+ opts = {
+ retain: bool // the server should retain this message and send it out again to new subscribers
+ dup : bool   // indicate the message is a duplicate because original wasn't ACKed (QoS > 0 only)
+ }
+ */ MQTT.prototype.publish = function(topic, message, opts) {
     if (!this.client) return;
     opts = opts || {};
     try {
