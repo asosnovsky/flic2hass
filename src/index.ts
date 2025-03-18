@@ -1,9 +1,10 @@
-import { ButtonControllerOpt, makeButtonController } from "./ButtonController";
-import { HAmqttOptions, makeHAmqtt } from './HAmqtt';
-import { IRControllerOpt, makeIRController } from "./IRController";
-import { makeLogger } from "./Logger";
-import { ButtonModule, IRModule } from './flicTypes';
+import {ButtonControllerOpt, makeButtonController} from "./ButtonController";
+import {HAmqttOptions, makeHAmqtt} from './HAmqtt';
+import {IRControllerOpt, makeIRController} from "./IRController";
+import {makeLogger} from "./Logger";
+import {ButtonModule, IRModule} from './flicTypes';
 import * as mqtt from './mqtt';
+
 export type MQTTOpt = {
     host: string;
     port: number;
@@ -27,18 +28,18 @@ export const start = (
 ) => {
     const mqttServer = mqtt.create(
         options.mqtt.host,
-        { ...options.mqtt, keep_alive: true },
+        {...options.mqtt, keep_alive: true},
     );
     const logger = makeLogger('root', options.debug ?? false);
-    options.ha = options.ha ?? {}
-    options.flicBtns = options.flicBtns ?? {}
-    options.flicIR = options.flicIR ?? {}
-    options.ha.debug = options.ha.debug ?? options.debug ?? false
-    options.flicBtns.debug = options.flicBtns.debug ?? options.debug ?? false
-    options.flicIR.debug = options.flicBtns.debug ?? options.debug ?? false
+    options.ha = options.ha ?? {};
+    options.flicBtns = options.flicBtns ?? {};
+    options.flicIR = options.flicIR ?? {};
+    options.ha.debug = options.ha.debug ?? options.debug ?? false;
+    options.flicBtns.debug = options.flicBtns.debug ?? options.debug ?? false;
+    options.flicIR.debug = options.flicIR.debug ?? options.debug ?? false;
     const ha = makeHAmqtt(mqttServer, options.ha);
     mqttServer.on('connected', () => {
-        logger.info("connected to mqtt")
+        logger.info("connected to mqtt");
         if (!options.flicBtns?.disabled) {
             makeButtonController(
                 ha, buttonModule, options.flicBtns,
@@ -52,25 +53,25 @@ export const start = (
                 options.flicIR,
             ).start();
         }
-        logger.info("all services up!")
+        logger.info("all services up!");
     });
     mqttServer.on('error', function (err) {
         logger.info("'Error' event", JSON.stringify(err));
         setTimeout(function () {
-            throw new Error("Crashed")
+            throw new Error("Crashed");
         }, 1000);
     });
     mqttServer.on("disconnected", function (err) {
         logger.info("'Error' disconnected", JSON.stringify(err));
         setTimeout(function () {
-            throw new Error("Crashed")
+            throw new Error("Crashed");
         }, 1000);
     });
     mqttServer.on("close", function (err) {
         logger.info("'Error' close", JSON.stringify(err));
         setTimeout(function () {
-            throw new Error("Crashed")
+            throw new Error("Crashed");
         }, 1000);
     });
-    mqttServer.connect()
-}
+    mqttServer.connect();
+};
