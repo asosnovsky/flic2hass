@@ -1,5 +1,10 @@
 'use strict';
 
+var buttonModule = require('buttons');
+var ir = require('ir');
+var flichub = require('flicapp');
+var hubinfo = require('hubinfo');
+
 function makeLogger(prefix) {
     var debugMode = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : false;
     return {
@@ -26,7 +31,7 @@ function makeLogger(prefix) {
     };
 }
 
-function _define_property$3(obj, key, value) {
+function _define_property$6(obj, key, value) {
     if (key in obj) {
         Object.defineProperty(obj, key, {
             value: value,
@@ -39,7 +44,7 @@ function _define_property$3(obj, key, value) {
     }
     return obj;
 }
-function _object_spread$3(target) {
+function _object_spread$6(target) {
     for(var i = 1; i < arguments.length; i++){
         var source = arguments[i] != null ? arguments[i] : {};
         var ownKeys = Object.keys(source);
@@ -49,17 +54,44 @@ function _object_spread$3(target) {
             }));
         }
         ownKeys.forEach(function(key) {
-            _define_property$3(target, key, source[key]);
+            _define_property$6(target, key, source[key]);
         });
     }
     return target;
 }
-var makeOptions$2 = function(opt) {
-    return _object_spread$3({
+var makeOptions$3 = function(opt) {
+    return _object_spread$6({
         debug: false
     }, opt);
 };
+
+var getDeviceFromButton = function(button) {
+    return {
+        name: button.name,
+        identifiers: [
+            button.serialNumber,
+            button.uuid
+        ],
+        manufacturer: "Flic",
+        model: "v".concat(button.flicVersion, "_").concat(button.color.trim().length > 0 ? button.color : "white"),
+        sw_version: String(button.firmwareVersion),
+        hw_version: String(button.flicVersion),
+        serial_number: String(button.serialNumber),
+        configuration_url: "https://hubsdk.flic.io/"
+    };
+};
+var genButtonUniqueId = function(bdaddr) {
+    return bdaddr.replace(/:/g, "_");
+};
+
 var ENTITIES = {
+    name: [
+        "sensor",
+        {
+            entity_category: "diagnostic",
+            name: "Button Name"
+        }
+    ],
     action: [
         "sensor",
         {
@@ -79,27 +111,6 @@ var ENTITIES = {
             expire_after: 5,
             unit_of_measurement: "%",
             device_class: "battery"
-        }
-    ],
-    batteryLastUpdate: [
-        "sensor",
-        {
-            entity_category: "diagnostic",
-            expire_after: 5,
-            name: "Battery Last Update Time",
-            device_class: "duration",
-            unit_of_measurement: "s"
-        }
-    ],
-    lifeline: [
-        "binary_sensor",
-        {
-            entity_category: "diagnostic",
-            expire_after: 5,
-            name: "Flichub Connected",
-            device_class: "connectivity",
-            unit_of_measurement: "s",
-            payload_not_available: "OFF"
         }
     ],
     connected: [
@@ -165,31 +176,41 @@ var ENTITIES = {
         }
     ]
 };
-function makeButtonController(ha, buttonModule) {
-    var options = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : {};
-    options = makeOptions$2(options);
-    var logger = makeLogger("btnc", options.debug);
-    logger.info("Starting Flic ButtonController with", JSON.stringify(options, null, 4));
-    var getDeviceFromButton = function(button) {
-        return {
-            name: button.name,
-            identifiers: [
-                button.serialNumber,
-                button.uuid
-            ],
-            manufacturer: "Flic",
-            model: "v".concat(button.flicVersion, "_").concat(button.color.trim().length > 0 ? button.color : "white"),
-            sw: String(button.firmwareVersion),
-            hw: String(button.flicVersion),
-            configuration_url: "https://hubsdk.flic.io/"
-        };
-    };
-    var genButtonUniqueId = function(bdaddr) {
-        return bdaddr.replace(/:/g, "_");
-    };
+
+function _define_property$5(obj, key, value) {
+    if (key in obj) {
+        Object.defineProperty(obj, key, {
+            value: value,
+            enumerable: true,
+            configurable: true,
+            writable: true
+        });
+    } else {
+        obj[key] = value;
+    }
+    return obj;
+}
+function _object_spread$5(target) {
+    for(var i = 1; i < arguments.length; i++){
+        var source = arguments[i] != null ? arguments[i] : {};
+        var ownKeys = Object.keys(source);
+        if (typeof Object.getOwnPropertySymbols === "function") {
+            ownKeys = ownKeys.concat(Object.getOwnPropertySymbols(source).filter(function(sym) {
+                return Object.getOwnPropertyDescriptor(source, sym).enumerable;
+            }));
+        }
+        ownKeys.forEach(function(key) {
+            _define_property$5(target, key, source[key]);
+        });
+    }
+    return target;
+}
+var ButtonStateHandler = function(ha, logger) {
     var registerButton = function(button) {
         logger.info("Registering", JSON.stringify(button, null, 4));
         var haDevice = getDeviceFromButton(button);
+        var uniqId = genButtonUniqueId(button.bdaddr);
+        ha.startLifeLine("Button Controller Connected", uniqId, haDevice);
         Object.keys(ENTITIES).forEach(function(objectId) {
             var avl = {
                 availability: [
@@ -206,9 +227,6 @@ function makeButtonController(ha, buttonModule) {
                 ],
                 availability_mode: "all"
             };
-            if (objectId === "lifeline") {
-                avl = {};
-            }
             if (objectId === "ready" || objectId == "connected") {
                 avl.availability = [
                     avl.availability[1]
@@ -217,100 +235,317 @@ function makeButtonController(ha, buttonModule) {
             if (ENTITIES[objectId][0] === "device_automation") {
                 avl = {};
             }
-            ha.registerEntity("Button ".concat(objectId), ENTITIES[objectId][0], genButtonUniqueId(button.bdaddr), objectId, haDevice, _object_spread$3({}, ENTITIES[objectId][1], avl));
+            ha.registerEntity("Button ".concat(objectId), ENTITIES[objectId][0], uniqId, objectId, haDevice, _object_spread$5({}, ENTITIES[objectId][1], avl));
         });
     };
-    var deregisterButton = function(button) {
-        logger.info("Deregistering", JSON.stringify(button, null, 4));
+    var deregisterButton = function(bdaddr) {
+        var uniqId = genButtonUniqueId(bdaddr);
+        logger.info("Deregistering", JSON.stringify({
+            bdaddr: bdaddr,
+            uniqId: uniqId
+        }, null, 4));
         Object.keys(ENTITIES).forEach(function(objectId) {
-            ha.deregisterEntity(ENTITIES[objectId][0], genButtonUniqueId(button.bdaddr), objectId);
+            ha.deregisterEntity(ENTITIES[objectId][0], uniqId, objectId);
         });
     };
-    var publishButtonState = function(button, state) {
-        ha.publishState(genButtonUniqueId(button.bdaddr), "state", state);
+    var publishButtonState = function(bdaddr, state) {
+        logger.debug('Updating state for bdaddr="'.concat(bdaddr, '" state=').concat(state));
+        ha.publishState(genButtonUniqueId(bdaddr), "state", state);
     };
-    var publishButtonAction = function(button, state) {
-        ha.publishState(genButtonUniqueId(button.bdaddr), "action", state);
+    var publishButtonAction = function(bdaddr, state) {
+        var uniqId = genButtonUniqueId(bdaddr);
+        ha.publishState(uniqId, "action", state);
+        logger.debug('Publishing click for bdaddr="'.concat(bdaddr, '" uniqId="').concat(uniqId, '" state=').concat(state));
         if (state === "click") {
-            ha.publishState(genButtonUniqueId(button.bdaddr), "button_short_press", "ON");
+            ha.publishState(uniqId, "button_short_press", "ON");
         } else if (state === "double_click") {
-            ha.publishState(genButtonUniqueId(button.bdaddr), "button_double_press", "ON");
+            ha.publishState(uniqId, "button_double_press", "ON");
         } else if (state === "hold") {
-            ha.publishState(genButtonUniqueId(button.bdaddr), "button_long_press", "ON");
+            ha.publishState(uniqId, "button_long_press", "ON");
         }
     };
-    var publishButtonMeta = function(button) {
-        ha.publishState(genButtonUniqueId(button.bdaddr), "battery", button.batteryStatus);
-        ha.publishState(genButtonUniqueId(button.bdaddr), "batteryLastUpdate", button.batteryTimestamp ? "".concat(Math.round((Date.now() - button.batteryTimestamp) / 1000)) : "unknown");
-        ha.publishState(genButtonUniqueId(button.bdaddr), "connected", button.connected ? "ON" : "OFF");
-        ha.publishState(genButtonUniqueId(button.bdaddr), "ready", button.ready ? "ON" : "OFF");
-        ha.publishState(genButtonUniqueId(button.bdaddr), "activeDisconnect", button.activeDisconnect ? "ON" : "OFF");
-        ha.publishState(genButtonUniqueId(button.bdaddr), "passive", button.activeDisconnect ? "ON" : "OFF");
-        ha.publishState(genButtonUniqueId(button.bdaddr), "lifeline", "ON");
+    var publishButtonMeta = function(bdaddr) {
+        var button = buttonModule.getButton(bdaddr);
+        var uniqId = genButtonUniqueId(button.bdaddr);
+        ha.publishState(uniqId, "name", button.name);
+        ha.publishState(uniqId, "battery", button.batteryStatus);
+        ha.publishState(uniqId, "connected", button.connected ? "ON" : "OFF");
+        ha.publishState(uniqId, "ready", button.ready ? "ON" : "OFF");
+        ha.publishState(uniqId, "activeDisconnect", button.activeDisconnect ? "ON" : "OFF");
+        ha.publishState(uniqId, "passive", button.activeDisconnect ? "ON" : "OFF");
+        ha.publishState(uniqId, "lifeline", "ON");
     };
-    var addBtn = function(eventName) {
-        return function(obj) {
-            var button = buttonModule.getButton(obj.bdaddr);
-            logger.info(eventName, "upserting", button.name, genButtonUniqueId(button.bdaddr));
-            registerButton(button);
-        };
+    var handleBtnCreation = function(eventName, obj) {
+        var button = buttonModule.getButton(obj.bdaddr);
+        logger.info(eventName, "upserting", button.name, genButtonUniqueId(button.bdaddr));
+        registerButton(button);
     };
-    var start = function() {
-        logger.info("Starting...");
+    return {
+        addBtn: function(eventName) {
+            return function(o) {
+                return handleBtnCreation(eventName, o);
+            };
+        },
+        addBtnWithObject: function(eventName) {
+            return function(o) {
+                return handleBtnCreation(eventName, o.button);
+            };
+        },
+        publishButtonMeta: publishButtonMeta,
+        publishButtonAction: publishButtonAction,
+        publishButtonState: publishButtonState,
+        registerButton: registerButton,
+        deregisterButton: deregisterButton
+    };
+};
+
+function makeButtonController(ha) {
+    var options = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : {};
+    options = makeOptions$3(options);
+    var logger = makeLogger("btnc", options.debug);
+    logger.info("Starting Flic ButtonController with", JSON.stringify(options, null, 4));
+    var stateHandler = ButtonStateHandler(ha, logger);
+    var setListeners = function() {
         var resetActiontInv = null;
-        buttonModule.on("buttonAdded", addBtn("buttonAdded"));
-        buttonModule.on("buttonConnected", addBtn("buttonConnected"));
-        buttonModule.on("buttonReady", function(btn) {
-            addBtn("buttonReady")(btn);
-            var button = buttonModule.getButton(btn.bdaddr);
-            publishButtonState(button, "released");
-            publishButtonAction(button, "none");
-        });
-        buttonModule.on("buttonUpdated", addBtn("buttonUpdated"));
+        buttonModule.on("buttonAdded", stateHandler.addBtnWithObject("buttonAdded"));
+        buttonModule.on("buttonUpdated", stateHandler.addBtnWithObject("buttonUpdated"));
         buttonModule.on("buttonDeleted", function(btn) {
             logger.debug("buttonDeleted", JSON.stringify(btn, null, 4));
-            deregisterButton(btn);
-            publishButtonMeta(btn);
+            stateHandler.deregisterButton(btn.bdaddr);
+            stateHandler.publishButtonMeta(btn.bdaddr);
+        });
+        buttonModule.on("buttonConnected", stateHandler.addBtn("buttonConnected"));
+        buttonModule.on("buttonReady", function(btn) {
+            stateHandler.addBtn("buttonReady")(btn);
+            stateHandler.publishButtonState(btn.bdaddr, "released");
+            stateHandler.publishButtonAction(btn.bdaddr, "none");
         });
         buttonModule.on("buttonDisconnected", function(param) {
             var bdaddr = param.bdaddr;
-            publishButtonMeta(buttonModule.getButton(bdaddr));
+            stateHandler.publishButtonMeta(bdaddr);
         });
         buttonModule.on("buttonDown", function(param) {
             var bdaddr = param.bdaddr;
-            var btn = buttonModule.getButton(bdaddr);
-            publishButtonState(btn, "pressed");
-            publishButtonMeta(btn);
+            stateHandler.publishButtonState(bdaddr, "pressed");
+            stateHandler.publishButtonMeta(bdaddr);
         });
         buttonModule.on("buttonUp", function(param) {
             var bdaddr = param.bdaddr;
-            var btn = buttonModule.getButton(bdaddr);
-            publishButtonState(btn, "released");
-            publishButtonMeta(btn);
+            stateHandler.publishButtonState(bdaddr, "released");
+            stateHandler.publishButtonMeta(bdaddr);
         });
+        buttonModule.on("buttonClickOrHold", function(obj) {});
         buttonModule.on("buttonSingleOrDoubleClickOrHold", function(obj) {
             if (resetActiontInv !== null) {
                 clearTimeout(resetActiontInv);
             }
-            var btn = buttonModule.getButton(obj.bdaddr);
-            publishButtonAction(btn, obj.isSingleClick ? "click" : obj.isDoubleClick ? "double_click" : "hold");
-            publishButtonMeta(btn);
+            stateHandler.publishButtonAction(obj.bdaddr, obj.isSingleClick ? "click" : obj.isDoubleClick ? "double_click" : "hold");
+            stateHandler.publishButtonMeta(obj.bdaddr);
             resetActiontInv = setTimeout(function() {
-                publishButtonAction(btn, "none");
+                stateHandler.publishButtonAction(obj.bdaddr, "none");
             }, 500);
         });
+    };
+    var start = function() {
+        logger.info("Starting...");
+        logger.info("Setting listeners...");
+        setListeners();
         logger.info("Registering all buttons...");
-        buttonModule.getButtons().forEach(registerButton);
+        buttonModule.getButtons().forEach(function(btn) {
+            return stateHandler.registerButton(btn);
+        });
         setInterval(function() {
-            return buttonModule.getButtons().forEach(publishButtonMeta);
+            logger.debug("Updating button state!");
+            buttonModule.getButtons().forEach(function(btn) {
+                return stateHandler.publishButtonMeta(btn.bdaddr);
+            });
         }, 3000);
         logger.info("is up");
     };
     return {
         start: start,
-        publishButtonAction: publishButtonAction,
-        publishButtonMeta: publishButtonMeta,
-        publishButtonState: publishButtonState
+        publishButtonAction: stateHandler.publishButtonAction,
+        publishButtonMeta: stateHandler.publishButtonMeta,
+        publishButtonState: stateHandler.publishButtonState
+    };
+}
+
+function _define_property$4(obj, key, value) {
+    if (key in obj) {
+        Object.defineProperty(obj, key, {
+            value: value,
+            enumerable: true,
+            configurable: true,
+            writable: true
+        });
+    } else {
+        obj[key] = value;
+    }
+    return obj;
+}
+function _object_spread$4(target) {
+    for(var i = 1; i < arguments.length; i++){
+        var source = arguments[i] != null ? arguments[i] : {};
+        var ownKeys = Object.keys(source);
+        if (typeof Object.getOwnPropertySymbols === "function") {
+            ownKeys = ownKeys.concat(Object.getOwnPropertySymbols(source).filter(function(sym) {
+                return Object.getOwnPropertyDescriptor(source, sym).enumerable;
+            }));
+        }
+        ownKeys.forEach(function(key) {
+            _define_property$4(target, key, source[key]);
+        });
+    }
+    return target;
+}
+function ownKeys$2(object, enumerableOnly) {
+    var keys = Object.keys(object);
+    if (Object.getOwnPropertySymbols) {
+        var symbols = Object.getOwnPropertySymbols(object);
+        keys.push.apply(keys, symbols);
+    }
+    return keys;
+}
+function _object_spread_props$2(target, source) {
+    source = source != null ? source : {};
+    if (Object.getOwnPropertyDescriptors) {
+        Object.defineProperties(target, Object.getOwnPropertyDescriptors(source));
+    } else {
+        ownKeys$2(Object(source)).forEach(function(key) {
+            Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
+        });
+    }
+    return target;
+}
+var makeOptions$2 = function(opt) {
+    return _object_spread_props$2(_object_spread$4({
+        debug: false
+    }, opt), {
+        topics: _object_spread$4({
+            homeassistant: "homeassistant",
+            flic: "flic"
+        }, opt.topics)
+    });
+};
+
+function _define_property$3(obj, key, value) {
+    if (key in obj) {
+        Object.defineProperty(obj, key, {
+            value: value,
+            enumerable: true,
+            configurable: true,
+            writable: true
+        });
+    } else {
+        obj[key] = value;
+    }
+    return obj;
+}
+function _object_spread$3(target) {
+    for(var i = 1; i < arguments.length; i++){
+        var source = arguments[i] != null ? arguments[i] : {};
+        var ownKeys = Object.keys(source);
+        if (typeof Object.getOwnPropertySymbols === "function") {
+            ownKeys = ownKeys.concat(Object.getOwnPropertySymbols(source).filter(function(sym) {
+                return Object.getOwnPropertyDescriptor(source, sym).enumerable;
+            }));
+        }
+        ownKeys.forEach(function(key) {
+            _define_property$3(target, key, source[key]);
+        });
+    }
+    return target;
+}
+function ownKeys$1(object, enumerableOnly) {
+    var keys = Object.keys(object);
+    if (Object.getOwnPropertySymbols) {
+        var symbols = Object.getOwnPropertySymbols(object);
+        keys.push.apply(keys, symbols);
+    }
+    return keys;
+}
+function _object_spread_props$1(target, source) {
+    source = source != null ? source : {};
+    if (Object.getOwnPropertyDescriptors) {
+        Object.defineProperties(target, Object.getOwnPropertyDescriptors(source));
+    } else {
+        ownKeys$1(Object(source)).forEach(function(key) {
+            Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
+        });
+    }
+    return target;
+}
+function makeHAmqtt(mqttServer) {
+    var options = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : {};
+    options = makeOptions$2(options);
+    var logger = makeLogger("mqtt:ha", options.debug);
+    logger.info("starting...", JSON.stringify(options, null, 4));
+    var genFlicPrefix = function(nodeId, objectId) {
+        return "".concat(options.topics.flic, "/").concat(nodeId, "/").concat(objectId);
+    };
+    var genFlicPrefixObject = function(nodeId, objectId) {
+        return {
+            nodeId: nodeId,
+            objectId: objectId,
+            mqttPrefix: genFlicPrefix(nodeId, objectId)
+        };
+    };
+    var genHAPrefix = function(component, nodeId, objectId) {
+        return "".concat(options.topics.homeassistant, "/").concat(component, "/").concat(nodeId, "/").concat(objectId);
+    };
+    var publishState = function(nodeId, objectId, state) {
+        var opt = arguments.length > 3 && arguments[3] !== void 0 ? arguments[3] : {};
+        var btntopic = genFlicPrefix(nodeId, objectId);
+        mqttServer.publish(btntopic, state + "", opt);
+        logger.debug(btntopic, state, JSON.stringify(opt));
+    };
+    var registerEntity = function(name, component, nodeId, objectId, device) {
+        var additionalProps = arguments.length > 5 && arguments[5] !== void 0 ? arguments[5] : {};
+        var configtopic = genHAPrefix(component, nodeId, objectId) + "/config";
+        if (component === "device_automation") {
+            additionalProps.topic = genFlicPrefix(nodeId, objectId);
+        } else {
+            additionalProps.state_topic = genFlicPrefix(nodeId, objectId);
+        }
+        var configObj = _object_spread_props$1(_object_spread$3({
+            name: name
+        }, additionalProps), {
+            unique_id: "Flic_".concat(nodeId, "_").concat(objectId),
+            device: device
+        });
+        mqttServer.publish(configtopic, JSON.stringify(configObj), {
+            retain: true
+        });
+        logger.debug(configtopic, JSON.stringify(configObj, null, 4));
+    };
+    var deregisterEntity = function(component, nodeId, objectId) {
+        var configtopic = genHAPrefix(component, nodeId, objectId) + "/config";
+        mqttServer.publish(configtopic, null, {
+            retain: false
+        });
+        logger.debug(configtopic, null);
+    };
+    var startLifeLine = function(name, nodeId, haDevice) {
+        var topic = arguments.length > 3 && arguments[3] !== void 0 ? arguments[3] : "lifeline";
+        registerEntity(name, "binary_sensor", nodeId, topic, haDevice, {
+            device_class: "connectivity",
+            expire_after: 5,
+            off_delay: 3,
+            entity_category: "diagnostic",
+            payload_available: "ON",
+            payload_not_available: "OFF"
+        });
+        setInterval(function() {
+            publishState(nodeId, topic, "ON");
+        }, 2500);
+    };
+    return {
+        deregisterEntity: deregisterEntity,
+        registerEntity: registerEntity,
+        publishState: publishState,
+        genFlicPrefix: genFlicPrefix,
+        genFlicPrefixObject: genFlicPrefixObject,
+        startLifeLine: startLifeLine
     };
 }
 
@@ -342,120 +577,7 @@ function _object_spread$2(target) {
     }
     return target;
 }
-function ownKeys$1(object, enumerableOnly) {
-    var keys = Object.keys(object);
-    if (Object.getOwnPropertySymbols) {
-        var symbols = Object.getOwnPropertySymbols(object);
-        if (enumerableOnly) {
-            symbols = symbols.filter(function(sym) {
-                return Object.getOwnPropertyDescriptor(object, sym).enumerable;
-            });
-        }
-        keys.push.apply(keys, symbols);
-    }
-    return keys;
-}
-function _object_spread_props$1(target, source) {
-    source = source != null ? source : {};
-    if (Object.getOwnPropertyDescriptors) {
-        Object.defineProperties(target, Object.getOwnPropertyDescriptors(source));
-    } else {
-        ownKeys$1(Object(source)).forEach(function(key) {
-            Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
-        });
-    }
-    return target;
-}
-var makeOptions$1 = function(opt) {
-    return _object_spread_props$1(_object_spread$2({
-        debug: false
-    }, opt), {
-        topics: _object_spread$2({
-            homeassistant: "homeassistant",
-            flic: "flic"
-        }, opt.topics)
-    });
-};
-function makeHAmqtt(mqttServer) {
-    var options = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : {};
-    options = makeOptions$1(options);
-    var logger = makeLogger("mqtt:ha", options.debug);
-    logger.info("starting...", JSON.stringify(options, null, 4));
-    var genFlicPrefix = function(nodeId, objectId) {
-        return "".concat(options.topics.flic, "/").concat(nodeId, "/").concat(objectId);
-    };
-    var genHAPrefix = function(component, nodeId, objectId) {
-        return "".concat(options.topics.homeassistant, "/").concat(component, "/").concat(nodeId, "/").concat(objectId);
-    };
-    var publishState = function(nodeId, objectId, state) {
-        var opt = arguments.length > 3 && arguments[3] !== void 0 ? arguments[3] : {};
-        var btntopic = genFlicPrefix(nodeId, objectId);
-        mqttServer.publish(btntopic, state + "", opt);
-        logger.debug(btntopic, state, JSON.stringify(opt));
-    };
-    var registerEntity = function(name, component, nodeId, objectId, device) {
-        var additionalProps = arguments.length > 5 && arguments[5] !== void 0 ? arguments[5] : {};
-        var configtopic = genHAPrefix(component, nodeId, objectId) + "/config";
-        if (component === "device_automation") {
-            additionalProps.topic = genFlicPrefix(nodeId, objectId);
-        } else {
-            additionalProps.state_topic = genFlicPrefix(nodeId, objectId);
-        }
-        var configObj = _object_spread_props$1(_object_spread$2({
-            name: name
-        }, additionalProps), {
-            unique_id: "Flic_".concat(nodeId, "_").concat(objectId),
-            device: device
-        });
-        mqttServer.publish(configtopic, JSON.stringify(configObj), {
-            retain: true
-        });
-        logger.debug(configtopic, JSON.stringify(configObj, null, 4));
-    };
-    var deregisterEntity = function(component, nodeId, objectId) {
-        var configtopic = genHAPrefix(component, nodeId, objectId) + "/config";
-        mqttServer.publish(configtopic, null, {
-            retain: false
-        });
-        logger.debug(configtopic, null);
-    };
-    return {
-        deregisterEntity: deregisterEntity,
-        registerEntity: registerEntity,
-        publishState: publishState,
-        genFlicPrefix: genFlicPrefix
-    };
-}
-
-function _define_property$1(obj, key, value) {
-    if (key in obj) {
-        Object.defineProperty(obj, key, {
-            value: value,
-            enumerable: true,
-            configurable: true,
-            writable: true
-        });
-    } else {
-        obj[key] = value;
-    }
-    return obj;
-}
-function _object_spread$1(target) {
-    for(var i = 1; i < arguments.length; i++){
-        var source = arguments[i] != null ? arguments[i] : {};
-        var ownKeys = Object.keys(source);
-        if (typeof Object.getOwnPropertySymbols === "function") {
-            ownKeys = ownKeys.concat(Object.getOwnPropertySymbols(source).filter(function(sym) {
-                return Object.getOwnPropertyDescriptor(source, sym).enumerable;
-            }));
-        }
-        ownKeys.forEach(function(key) {
-            _define_property$1(target, key, source[key]);
-        });
-    }
-    return target;
-}
-var NODE_ID = "FlicHubIR";
+var NODE_ID$1 = "FlicHubIR";
 var convertUint32Array2Str = function(arr) {
     var outStr = [];
     for(var i = 0; i < arr.length; i++){
@@ -469,26 +591,27 @@ var convertStr2Uint32Array = function(s) {
         return parseInt(v, 32);
     }));
 };
-var makeOptions = function(opt) {
-    return _object_spread$1({
+var makeOptions$1 = function(opt) {
+    return _object_spread$2({
         debug: false,
         uniqueId: "0"
     }, opt);
 };
-var makeIRController = function(ir, ha, mqtt) {
-    var options = arguments.length > 3 && arguments[3] !== void 0 ? arguments[3] : {};
-    options = makeOptions(options);
+
+var makeIRController = function(ha, mqtt) {
+    var options = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : {};
+    options = makeOptions$1(options);
     var logger = makeLogger("ir", options.debug);
     var haDevice = {
         name: "IR",
         manufacturer: "Flic",
-        model: "".concat(NODE_ID).concat(options.uniqueId),
+        model: "".concat(NODE_ID$1).concat(options.uniqueId),
         identifiers: [
             "FlicHubIR"
         ],
         configuration_url: "https://hubsdk.flic.io/"
     };
-    var nodeId = "".concat(NODE_ID).concat(options.uniqueId);
+    var nodeId = "".concat(NODE_ID$1).concat(options.uniqueId);
     var LIFELINE_SGINAL = ha.genFlicPrefix(nodeId, "lifeline");
     var RECORD_SIGNAL_SET = ha.genFlicPrefix(nodeId, "record/set");
     var VALUE_SIGNAL_SET = ha.genFlicPrefix(nodeId, "signal/set");
@@ -512,6 +635,7 @@ var makeIRController = function(ir, ha, mqtt) {
         start: function start() {
             logger.info("starting...");
             logger.debug("setting up entities...");
+            ha.startLifeLine("IR Connnected", nodeId, haDevice);
             ha.registerEntity("IR Available", "binary_sensor", nodeId, "lifeline", haDevice, {
                 device_class: "connectivity",
                 expire_after: 5,
@@ -596,9 +720,6 @@ var makeIRController = function(ir, ha, mqtt) {
             });
             logger.debug("subscribing to", set_topics);
             mqtt.subscribe(set_topics);
-            setInterval(function() {
-                ha.publishState(nodeId, "lifeline", "ON");
-            }, 2500);
             logger.info("is up");
         }
     };
@@ -660,7 +781,7 @@ function _unsupported_iterable_to_array(o, minLen) {
 var C = {
     PROTOCOL_LEVEL: 4,
     DEF_PORT: 1883,
-    DEF_KEEP_ALIVE: 60 // Default keep_alive (s)
+    DEF_KEEP_ALIVE: 60
 };
 /** Control packet types */ var TYPE = {
     CONNECT: 1,
@@ -705,7 +826,7 @@ Uint8Array.prototype.charCodeAt = function(a, b) {
     this.client = false;
     this.connected = false;
     /* if keep_alive is less than the ping interval we need to use
-      a shorter ping interval, otherwise we'll just time out! */ this.ping_interval = this.keep_alive < this.C.PING_INTERVAL ? this.keep_alive - 5 : this.C.PING_INTERVAL;
+    a shorter ping interval, otherwise we'll just time out! */ this.ping_interval = this.keep_alive < this.C.PING_INTERVAL ? this.keep_alive - 5 : this.C.PING_INTERVAL;
     this.protocol_name = options.protocol_name || "MQTT";
     this.protocol_level = options.protocol_level || C.PROTOCOL_LEVEL;
     if (typeof this.client_id == "string") {
@@ -779,7 +900,7 @@ if (!Buffer.from) {
 /** 'public' constants here */ MQTT.prototype.C = {
     DEF_QOS: 0,
     CONNECT_TIMEOUT: 10000,
-    PING_INTERVAL: 40 // Server ping interval (s)
+    PING_INTERVAL: 40
 };
 /* Utility functions ***************************/ var fromCharCode = String.fromCharCode;
 /** MQTT string (length MSB, LSB + data) */ function mqttStr(s) {
@@ -871,7 +992,7 @@ function mqttInt2Str(arr) {
     pakId = pakId > 65534 ? 1 : ++pakId;
     return [
         pakId >> 8,
-        pakId & 0xFF
+        pakId & 0xff
     ];
 }
 /** Get PID from message */ function getPid(data) {
@@ -924,11 +1045,6 @@ MQTT.prototype.packetHandler = function(data) {
     // less than one packet?
     if (data.length < pLen) {
         this.partData = data;
-        return;
-    }
-    // Allow zero-size pData, but detect if its indexes
-    // will go out of bounds.
-    if (1 + dLen.lenBy >= data.length) {
         return;
     }
     // Get the data for this packet
@@ -1089,11 +1205,11 @@ MQTT.prototype.packetHandler = function(data) {
     this.client = false;
 };
 /** Publish message using specified topic.
- opts = {
- retain: bool // the server should retain this message and send it out again to new subscribers
- dup : bool   // indicate the message is a duplicate because original wasn't ACKed (QoS > 0 only)
- }
- */ MQTT.prototype.publish = function(topic, message, opts) {
+  opts = {
+    retain: bool // the server should retain this message and send it out again to new subscribers
+    dup : bool   // indicate the message is a duplicate because original wasn't ACKed (QoS > 0 only)
+  }
+*/ MQTT.prototype.publish = function(topic, message, opts) {
     if (!this.client) return;
     opts = opts || {};
     try {
@@ -1193,6 +1309,117 @@ MQTT.prototype.packetHandler = function(data) {
     return new MQTT(server, options);
 }
 
+function _define_property$1(obj, key, value) {
+    if (key in obj) {
+        Object.defineProperty(obj, key, {
+            value: value,
+            enumerable: true,
+            configurable: true,
+            writable: true
+        });
+    } else {
+        obj[key] = value;
+    }
+    return obj;
+}
+function _object_spread$1(target) {
+    for(var i = 1; i < arguments.length; i++){
+        var source = arguments[i] != null ? arguments[i] : {};
+        var ownKeys = Object.keys(source);
+        if (typeof Object.getOwnPropertySymbols === "function") {
+            ownKeys = ownKeys.concat(Object.getOwnPropertySymbols(source).filter(function(sym) {
+                return Object.getOwnPropertyDescriptor(source, sym).enumerable;
+            }));
+        }
+        ownKeys.forEach(function(key) {
+            _define_property$1(target, key, source[key]);
+        });
+    }
+    return target;
+}
+var NODE_ID = "FlicHub";
+var makeOptions = function(opt) {
+    return _object_spread$1({
+        debug: false,
+        uniqueId: "0"
+    }, opt);
+};
+var getHADevice = function(options) {
+    return {
+        name: "FlicHub (".concat(options.uniqueId, ")"),
+        manufacturer: "Flic",
+        model: "".concat(NODE_ID).concat(options.uniqueId),
+        identifiers: [
+            "FlicHub"
+        ],
+        configuration_url: "https://hubsdk.flic.io/",
+        sw_version: hubinfo.firmwareVersion,
+        serial_number: hubinfo.serialNumber
+    };
+};
+var getConstants = function(ha, options) {
+    var nodeId = "".concat(NODE_ID).concat(options.uniqueId);
+    return {
+        NODE_ID: nodeId,
+        LIFELINE_SGINAL: ha.genFlicPrefixObject(nodeId, "lifeline"),
+        MESSAGE: ha.genFlicPrefixObject(nodeId, "action-message"),
+        COMMAND_TOPIC: function(virtualId) {
+            return ha.genFlicPrefixObject(nodeId, "virt-command-".concat(virtualId));
+        }
+    };
+};
+
+var genVirtualDeviceObjectId = function(param) {
+    var virtualDeviceId = param.virtualDeviceId, dimmableType = param.dimmableType;
+    return "virt-".concat(dimmableType, "-").concat(virtualDeviceId).toLowerCase();
+};
+var VirtualDeviceType2HAComponent = {
+    Blind: "cover",
+    Light: "light",
+    Speaker: "media_player"
+};
+var virtualDeviceUpdateHandler = function(ha, logger, haDevice, nodeId, update, commandTopic, availability) {
+    var objectId = genVirtualDeviceObjectId(update.metaData);
+    var mqttPrefix = ha.genFlicPrefixObject(nodeId, objectId);
+    logger.info("Handling update for ".concat(update, " on ").concat(haDevice));
+    ha.registerEntity(update.metaData.virtualDeviceId, VirtualDeviceType2HAComponent[update.metaData.dimmableType], mqttPrefix.nodeId, mqttPrefix.objectId, haDevice, {
+        availability: availability,
+        command_topic: commandTopic
+    });
+    ha.publishState(mqttPrefix.nodeId, mqttPrefix.objectId, {
+        brightness: update.values.brightness * 255
+    });
+};
+
+var startFlicHubController = function(ha, mqtt) {
+    var _options = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : {};
+    var options = makeOptions(_options);
+    var logger = makeLogger("flichub", options.debug);
+    var haDevice = getHADevice(options);
+    var constants = getConstants(ha, options);
+    var availability = [
+        {
+            payload_available: "ON",
+            payload_not_available: "unavailable",
+            topic: constants.LIFELINE_SGINAL.mqttPrefix
+        }
+    ];
+    logger.info("starting...");
+    logger.debug("setting up entities...");
+    ha.startLifeLine("FlicHub Connected", constants.NODE_ID, haDevice, constants.LIFELINE_SGINAL.objectId);
+    ha.registerEntity("Action Message", "sensor", constants.NODE_ID, constants.MESSAGE.objectId, haDevice, {
+        icon: "mdi:message",
+        availability: availability
+    });
+    ha.publishState(constants.NODE_ID, constants.MESSAGE.objectId, "");
+    flichub.on("actionMessage", function(obj) {
+        ha.publishState(constants.NODE_ID, constants.MESSAGE.objectId, obj);
+    });
+    flichub.on("virtualDeviceUpdate", function(update) {
+        return virtualDeviceUpdateHandler(ha, logger, haDevice, constants.NODE_ID, update, constants.COMMAND_TOPIC(update.metaData.virtualDeviceId), availability);
+    });
+};
+
 function _define_property(obj, key, value) {
     if (key in obj) {
         Object.defineProperty(obj, key, {
@@ -1225,11 +1452,6 @@ function ownKeys(object, enumerableOnly) {
     var keys = Object.keys(object);
     if (Object.getOwnPropertySymbols) {
         var symbols = Object.getOwnPropertySymbols(object);
-        if (enumerableOnly) {
-            symbols = symbols.filter(function(sym) {
-                return Object.getOwnPropertyDescriptor(object, sym).enumerable;
-            });
-        }
         keys.push.apply(keys, symbols);
     }
     return keys;
@@ -1245,7 +1467,7 @@ function _object_spread_props(target, source) {
     }
     return target;
 }
-var start = function(buttonModule, irModule, options) {
+var start = function(options) {
     var mqttServer = create(options.mqtt.host, _object_spread_props(_object_spread({}, options.mqtt), {
         keep_alive: true
     }));
@@ -1257,21 +1479,28 @@ var start = function(buttonModule, irModule, options) {
     options.flicBtns = (_options_flicBtns = options.flicBtns) !== null && _options_flicBtns !== void 0 ? _options_flicBtns : {};
     var _options_flicIR;
     options.flicIR = (_options_flicIR = options.flicIR) !== null && _options_flicIR !== void 0 ? _options_flicIR : {};
+    var _options_flicHub;
+    options.flicHub = (_options_flicHub = options.flicHub) !== null && _options_flicHub !== void 0 ? _options_flicHub : {};
     var _options_ha_debug, _ref;
     options.ha.debug = (_ref = (_options_ha_debug = options.ha.debug) !== null && _options_ha_debug !== void 0 ? _options_ha_debug : options.debug) !== null && _ref !== void 0 ? _ref : false;
     var _options_flicBtns_debug, _ref1;
     options.flicBtns.debug = (_ref1 = (_options_flicBtns_debug = options.flicBtns.debug) !== null && _options_flicBtns_debug !== void 0 ? _options_flicBtns_debug : options.debug) !== null && _ref1 !== void 0 ? _ref1 : false;
-    var _options_flicBtns_debug1, _ref2;
-    options.flicIR.debug = (_ref2 = (_options_flicBtns_debug1 = options.flicBtns.debug) !== null && _options_flicBtns_debug1 !== void 0 ? _options_flicBtns_debug1 : options.debug) !== null && _ref2 !== void 0 ? _ref2 : false;
+    var _options_flicIR_debug, _ref2;
+    options.flicIR.debug = (_ref2 = (_options_flicIR_debug = options.flicIR.debug) !== null && _options_flicIR_debug !== void 0 ? _options_flicIR_debug : options.debug) !== null && _ref2 !== void 0 ? _ref2 : false;
+    var _options_flicHub_debug, _ref3;
+    options.flicHub.debug = (_ref3 = (_options_flicHub_debug = options.flicHub.debug) !== null && _options_flicHub_debug !== void 0 ? _options_flicHub_debug : options.debug) !== null && _ref3 !== void 0 ? _ref3 : false;
     var ha = makeHAmqtt(mqttServer, options.ha);
     mqttServer.on("connected", function() {
-        var _options_flicBtns, _options_flicIR;
+        var _options_flicBtns, _options_flicIR, _options_flicHub;
         logger.info("connected to mqtt");
         if (!((_options_flicBtns = options.flicBtns) === null || _options_flicBtns === void 0 ? void 0 : _options_flicBtns.disabled)) {
-            makeButtonController(ha, buttonModule, options.flicBtns).start();
+            makeButtonController(ha, options.flicBtns).start();
         }
         if (!((_options_flicIR = options.flicIR) === null || _options_flicIR === void 0 ? void 0 : _options_flicIR.disabled)) {
-            makeIRController(irModule, ha, mqttServer, options.flicIR).start();
+            makeIRController(ha, mqttServer, options.flicIR).start();
+        }
+        if (!((_options_flicHub = options.flicHub) === null || _options_flicHub === void 0 ? void 0 : _options_flicHub.disabled)) {
+            startFlicHubController(ha, mqttServer, options.flicHub);
         }
         logger.info("all services up!");
     });

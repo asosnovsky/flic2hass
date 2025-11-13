@@ -1,10 +1,7 @@
 {
-    "compilerOptions": {
-        "target": "ES2015",
-        "module": "ESNext"
-    },
-    "include": [
-        "src/**/*",
-        "rollup.config.ts"
-    ],
+  "compilerOptions": {
+    "target": "ES2015",
+    "module": "ESNext"
+  },
+  "include": ["src/**/*", "rollup.config.ts", "types/*"]
 }

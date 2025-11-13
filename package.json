@@ -3,7 +3,7 @@
   "version": "1.1.0",
   "description": "Flic Hub MQTT Server",
   "scripts": {
-    "build": "swc src/ -d dist/ && rollup dist/index.js --file lib.js -f cjs"
+    "build": "rm -rf dist/* && swc src/ -d dist/ && rollup dist/index.js --file lib.js -f cjs"
   },
   "repository": {
     "type": "git",
