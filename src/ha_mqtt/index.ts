@@ -1,13 +1,13 @@
 import { makeLogger } from "../Logger";
-import { MQTT } from "../mqtt";
+import { FlicMQTT } from "../mqtt_client/index";
 import { makeOptions } from "./utils";
 
 export type HAmqtt = ReturnType<typeof makeHAmqtt>;
 export function makeHAmqtt(
-  mqttServer: MQTT,
-  options: Partial<HAmqttOptions> = {},
+  mqttServer: FlicMQTT,
+  _options: Partial<HAmqttOptions> = {},
 ) {
-  options = makeOptions(options);
+  const options = makeOptions(_options);
   const logger = makeLogger("mqtt:ha", options.debug);
   logger.info("starting...", JSON.stringify(options, null, 4));
   const genFlicPrefix = (nodeId: string, objectId: string): string => {

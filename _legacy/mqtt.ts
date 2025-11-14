@@ -73,7 +73,7 @@ var RETURN_CODES = {
 };
 
 /** MQTT constructor */
-function MQTT(server, options) {
+export function MQTT(server: string, options: Partial<MQTTOptions>) {
   this.server = server;
   options = options || {};
   this.port = options.port || C.DEF_PORT;
@@ -143,10 +143,10 @@ Object.prototype.on = function (type, fn) {
   __listeners[type].push(fn);
 };
 
-Object.prototype.emit = function (type, ...data) {
+Object.prototype.emit = function (type, data) {
   if (__listeners[type]) {
     __listeners[type].map(function (fn) {
-      fn(...data);
+      fn(data);
     });
   }
 };
@@ -183,16 +183,8 @@ export function mqttStr(s) {
   return payloadarray;
 }
 
-export function mqttInt2Str(arr: number[] | Uint8Array): string {
-  let outStr = "";
-  for (var i = 0; i < arr.length; i++) {
-    outStr += createEscapedHex(arr[i]);
-  }
-  return outStr;
-}
-
 /** MQTT packet length formatter - algorithm from reference docs */
-function mqttPacketLength(length) {
+function mqttPacketLength(length: number) {
   var encLength = [];
   var i = 0;
   do {
@@ -335,7 +327,6 @@ MQTT.prototype.packetHandler = function (data) {
   }
   // Get the data for this packet
   var pData = data.slice(1 + dLen.lenBy, pLen);
-
   // more than one packet? re-emit it so we handle it later
   if (data.length > pLen) {
     this.client.emit("data", data.slice(pLen, data.length));
@@ -364,11 +355,7 @@ MQTT.prototype.packetHandler = function (data) {
       ]);
     }
     this.emit("publish", parsedData);
-    this.emit(
-      "message",
-      mqttInt2Str(parsedData.topic),
-      mqttInt2Str(parsedData.message),
-    );
+    this.emit("message", parsedData.topic, parsedData.message);
   } else if (type === TYPE.PUBACK) {
     this.emit("puback", (data.charCodeAt(2) << 8) | data.charCodeAt(3));
   } else if (type === TYPE.PUBREC) {
@@ -454,9 +441,10 @@ MQTT.prototype.connect = function (client) {
   } else {
     try {
       var self = this;
-      client = require("net")
-        .Socket()
-        .connect({ host: mqo.server, port: mqo.port }, onConnect);
+      client = require("net").connect(
+        { host: mqo.server, port: mqo.port },
+        onConnect,
+      );
       client.on("error", function (err) {
         self.emit("error", err.message);
       });
@@ -524,17 +512,20 @@ MQTT.prototype.publish = function (topic, message, opts) {
 };
 
 /** Subscribe to topic (filter) */
-MQTT.prototype.subscribe = function (topics, opts) {
+MQTT.prototype.subscribe = function (
+  topics: string[] | string | Record<string, any>,
+  opts: { qos?: any },
+) {
   if (!this.client) return;
   opts = opts || {};
 
-  var subs = [];
+  var subs: { topic: string; qos: any }[] = [];
   if ("string" === typeof topics) {
     topics = [topics];
   }
   if (Array.isArray(topics)) {
     topics.forEach(
-      function (topic) {
+      function (topic: string) {
         subs.push({
           topic: topic,
           qos: opts.qos || this.C.DEF_QOS,
@@ -551,7 +542,7 @@ MQTT.prototype.subscribe = function (topics, opts) {
   }
 
   subs.forEach(
-    function (sub) {
+    function (sub: { topic: string; qos: any }) {
       var subpacket = mqttSubscribe(sub.topic, sub.qos);
       this.client.write(subpacket);
     }.bind(this),
@@ -619,44 +610,14 @@ MQTT.prototype.mqttConnect = function (clean) {
 /* Exports *************************************/
 
 /** This is 'exported' so it can be used with `require('MQTT.js').create(server, options)` */
-export function create(server, options): MQTT {
+export function create(server: string, options: Partial<MQTTOptions>) {
   return new MQTT(server, options);
 }
 
-export function connect(options): MQTT {
+export function connect(
+  options: Partial<Flic2HassMQTTOptions> & { host: string },
+) {
   var mqtt = new MQTT(options.host, options);
   mqtt.connect();
   return mqtt;
-}
-
-export interface MQTT {
-  connect(): void;
-  publish(
-    topic: string,
-    message: string,
-    opts:
-      | {
-          retain?: boolean; // the server should retain this message and send it out again to new subscribers
-          dup?: boolean; // indicate the message is a duplicate because original wasn't ACKed (QoS > 0 only)
-        }
-      | undefined,
-  ): void;
-  subscribe(topics: string[]): void;
-  unsubscribe(topic: string): void;
-  on(
-    ev: "publish",
-    cb: (data: { topic: Buffer; message: Buffer }) => void,
-  ): void;
-  on(ev: "message", cb: (topic: string, message: string) => void): void;
-  on(ev: "puback", cb: (data) => void): void;
-  on(ev: "pubcomp", cb: (data) => void): void;
-  on(ev: "subscribed_fail", cb: (data) => void): void;
-  on(ev: "subscribed", cb: (data) => void): void;
-  on(ev: "unsubscribed", cb: (data) => void): void;
-  on(ev: "ping_reply", cb: (data) => void): void;
-  on(ev: "connected", cb: (data) => void): void;
-  on(ev: "connect", cb: (data) => void): void;
-  on(ev: "error", cb: (data) => void): void;
-  on(ev: "disconnected", cb: (data) => void): void;
-  on(ev: "close", cb: (data) => void): void;
 }

@@ -1,6 +1,6 @@
 import { HAmqtt } from "../ha_mqtt/index";
 import { makeLogger } from "../Logger";
-import { MQTT } from "../mqtt";
+import { FlicMQTT } from "../mqtt_client/index";
 import flichub from "flicapp";
 import {
   makeOptions,
@@ -12,7 +12,7 @@ import { virtualDeviceUpdateHandler } from "./virtual_device_update";
 
 export const startFlicHubController = (
   ha: HAmqtt,
-  mqtt: MQTT,
+  mqtt: FlicMQTT,
   _options: Partial<FlicHubOptions> = {},
 ) => {
   const options = makeOptions(_options);

@@ -1,14 +1,14 @@
 import { makeButtonController } from "./button_controller/index";
 
 import { makeHAmqtt } from "./ha_mqtt/index";
-import { makeIRController } from "./ir_controller/index";
+import { startIRController } from "./ir_controller/index";
 
 import { makeLogger } from "./Logger";
-import * as mqtt from "./mqtt";
+import { FlicMQTT } from "./mqtt_client/index";
 import { startFlicHubController } from "./hub_controller/index";
 
 export const start = (options: Options) => {
-  const mqttServer = mqtt.create(options.mqtt.host, {
+  const mqttServer = new FlicMQTT(options.mqtt.host, {
     ...options.mqtt,
     keep_alive: true,
   });
@@ -28,7 +28,7 @@ export const start = (options: Options) => {
       makeButtonController(ha, options.flicBtns).start();
     }
     if (!options.flicIR?.disabled) {
-      makeIRController(ha, mqttServer, options.flicIR).start();
+      startIRController(ha, mqttServer, options.flicIR);
     }
     if (!options.flicHub?.disabled) {
       startFlicHubController(ha, mqttServer, options.flicHub);
@@ -41,16 +41,16 @@ export const start = (options: Options) => {
       throw new Error("Crashed");
     }, 1000);
   });
-  mqttServer.on("disconnected", function (err) {
-    logger.info("'Error' disconnected", JSON.stringify(err));
+  mqttServer.on("disconnected", function () {
+    logger.info("Lost access - disconnected");
     setTimeout(function () {
-      throw new Error("Crashed");
+      throw new Error("disconnected");
     }, 1000);
   });
-  mqttServer.on("close", function (err) {
-    logger.info("'Error' close", JSON.stringify(err));
+  mqttServer.on("close", function () {
+    logger.info("Lost access - close");
     setTimeout(function () {
-      throw new Error("Crashed");
+      throw new Error("closed");
     }, 1000);
   });
   mqttServer.connect();

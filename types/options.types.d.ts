@@ -20,17 +20,21 @@ type FlicHubOptions = {
   uniqueId: string;
   debug: boolean;
 };
-type MQTTOpt = {
-  host: string;
+type MQTTOptions = {
   port: number;
-  client_id: string;
-  keep_alive: boolean;
+  client_id: string | number[];
+  keep_alive: number | boolean;
   clean_session: boolean;
-  username: string;
-  password: string;
+  username?: string;
+  password?: string;
+  protocol_name: string;
+  protocol_level: number;
+};
+type Flic2HassMQTTOptions = MQTTOptions & {
+  host: string;
 };
 type Options = {
-  mqtt: Partial<MQTTOpt> & { host: string };
+  mqtt: Partial<Flic2HassMQTTOptions> & { host: string };
   debug?: boolean;
   ha?: Partial<HAmqttOptions>;
   flicBtns?: Partial<ButtonControllerOpt> & { disabled?: boolean };
