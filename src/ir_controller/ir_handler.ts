@@ -1,19 +1,17 @@
 import ir from "ir";
 import { Logger } from "../Logger";
-import {
-  IRConstants,
-  IRState,
-  convertStr2Uint32Array,
-  convertUint32Array2Str,
-} from "./utils";
+import { IRConstants, convertUint32Array2Str } from "./utils";
+
 import { HAmqtt } from "../ha_mqtt/index";
+import { IRState } from "./state";
 
 export const handleIREvents = (
   ha: HAmqtt,
   logger: Logger,
   nodeId: string,
   state: IRState,
-  { VALUE_SIGNAL_STATE, RECORD_SIGNAL }: IRConstants,
+  { RECORD_SIGNAL, RECORDED_SIGNALS }: IRConstants,
+  reloadSelectableSignals: (onDone: () => void) => void,
 ) => {
   ir.on("recordComplete", (data) => {
     logger.info("recordComplete", data);
@@ -28,9 +26,12 @@ export const handleIREvents = (
         stringMessage,
       }),
     );
-    state.setCurrentSignal(stringMessage);
-    ha.publishState(nodeId, VALUE_SIGNAL_STATE.objectId, stringMessage, {
-      retain: true,
+    state.signalStore.add(stringMessage, (idx) => {
+      reloadSelectableSignals(() => {
+        ha.publishState(nodeId, RECORDED_SIGNALS.objectId, String(idx), {
+          retain: true,
+        });
+      });
     });
     state.setRecordingState(false);
     ha.publishState(nodeId, RECORD_SIGNAL.objectId, "OFF");

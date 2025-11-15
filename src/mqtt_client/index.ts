@@ -358,15 +358,7 @@ export class FlicMQTT {
       dup : bool   // indicate the message is a duplicate because original wasn't ACKed (QoS > 0 only)
     }
   */
-  publish(
-    topic: string,
-    message: string,
-    opts: {
-      qos?: number;
-      retain?: boolean;
-      dup?: boolean;
-    },
-  ) {
+  publish(topic: string, message: string, opts: MQTTPublishOpt) {
     if (!this.client) return;
     opts = opts || {};
     try {

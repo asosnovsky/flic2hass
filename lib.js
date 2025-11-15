@@ -2,6 +2,7 @@
 
 var buttonModule = require('buttons');
 var ir = require('ir');
+var datastore = require('datastore');
 var net = require('net');
 var flichub = require('flicapp');
 var hubinfo = require('hubinfo');
@@ -32,7 +33,7 @@ function makeLogger(prefix) {
     };
 }
 
-function _define_property$7(obj, key, value) {
+function _define_property$8(obj, key, value) {
     if (key in obj) {
         Object.defineProperty(obj, key, {
             value: value,
@@ -55,7 +56,7 @@ function _object_spread$6(target) {
             }));
         }
         ownKeys.forEach(function(key) {
-            _define_property$7(target, key, source[key]);
+            _define_property$8(target, key, source[key]);
         });
     }
     return target;
@@ -178,7 +179,7 @@ var ENTITIES = {
     ]
 };
 
-function _define_property$6(obj, key, value) {
+function _define_property$7(obj, key, value) {
     if (key in obj) {
         Object.defineProperty(obj, key, {
             value: value,
@@ -201,7 +202,7 @@ function _object_spread$5(target) {
             }));
         }
         ownKeys.forEach(function(key) {
-            _define_property$6(target, key, source[key]);
+            _define_property$7(target, key, source[key]);
         });
     }
     return target;
@@ -371,7 +372,7 @@ function makeButtonController(ha) {
     };
 }
 
-function _define_property$5(obj, key, value) {
+function _define_property$6(obj, key, value) {
     if (key in obj) {
         Object.defineProperty(obj, key, {
             value: value,
@@ -394,7 +395,7 @@ function _object_spread$4(target) {
             }));
         }
         ownKeys.forEach(function(key) {
-            _define_property$5(target, key, source[key]);
+            _define_property$6(target, key, source[key]);
         });
     }
     return target;
@@ -429,7 +430,7 @@ var makeOptions$2 = function(opt) {
     });
 };
 
-function _define_property$4(obj, key, value) {
+function _define_property$5(obj, key, value) {
     if (key in obj) {
         Object.defineProperty(obj, key, {
             value: value,
@@ -452,7 +453,7 @@ function _object_spread$3(target) {
             }));
         }
         ownKeys.forEach(function(key) {
-            _define_property$4(target, key, source[key]);
+            _define_property$5(target, key, source[key]);
         });
     }
     return target;
@@ -521,9 +522,7 @@ function makeHAmqtt(mqttServer) {
     };
     var deregisterEntity = function(component, nodeId, objectId) {
         var configtopic = genHAPrefix(component, nodeId, objectId) + "/config";
-        mqttServer.publish(configtopic, null, {
-            retain: false
-        });
+        // mqttServer.publish(configtopic, null, { retain: false });
         logger.debug(configtopic, null);
     };
     var startLifeLine = function(name, nodeId, haDevice) {
@@ -550,7 +549,7 @@ function makeHAmqtt(mqttServer) {
     };
 }
 
-function _define_property$3(obj, key, value) {
+function _define_property$4(obj, key, value) {
     if (key in obj) {
         Object.defineProperty(obj, key, {
             value: value,
@@ -573,7 +572,7 @@ function _object_spread$2(target) {
             }));
         }
         ownKeys.forEach(function(key) {
-            _define_property$3(target, key, source[key]);
+            _define_property$4(target, key, source[key]);
         });
     }
     return target;
@@ -586,58 +585,29 @@ var convertUint32Array2Str = function(arr) {
     }
     return outStr.join("_");
 };
+var convertStr2Uint32Array = function(s) {
+    var a = s.split("_");
+    return new Uint32Array(a.slice(0, a.length - 2).map(function(v) {
+        return parseInt(v, 32);
+    }));
+};
 var makeOptions$1 = function(opt) {
     return _object_spread$2({
         debug: false,
         uniqueId: "0"
     }, opt);
 };
-var makeIRSharedState = function() {
-    var currentSignal = "";
-    var isRecording = false;
-    return {
-        isRecording: function isRecording1() {
-            return isRecording;
-        },
-        setRecordingState: function setRecordingState(newValue) {
-            isRecording = newValue;
-        },
-        currentSignal: function currentSignal1() {
-            return currentSignal;
-        },
-        setCurrentSignal: function setCurrentSignal(newValue) {
-            currentSignal = newValue;
-        }
-    };
-};
 var getConstants$1 = function(ha, options) {
     var nodeId = "".concat(NODE_ID$1).concat(options.uniqueId);
     var LIFELINE_SGINAL = ha.genFlicPrefixObject(nodeId, "lifeline");
     var RECORD_SIGNAL = ha.genFlicPrefixObject(nodeId, "record");
     var RECORD_SIGNAL_SET = ha.genFlicPrefixObject(nodeId, "record/set");
-    var VALUE_SIGNAL_SET = ha.genFlicPrefixObject(nodeId, "signal/set");
-    var VALUE_SIGNAL_STATE = ha.genFlicPrefixObject(nodeId, "signal");
     var PLAY_SIGNAL = ha.genFlicPrefixObject(nodeId, "play");
     var PLAY_SIGNAL_SET = ha.genFlicPrefixObject(nodeId, "play/set");
-    return {
-        NODE_ID: nodeId,
-        LIFELINE_SGINAL: LIFELINE_SGINAL,
-        RECORD_SIGNAL: RECORD_SIGNAL,
-        RECORD_SIGNAL_SET: RECORD_SIGNAL_SET,
-        VALUE_SIGNAL_SET: VALUE_SIGNAL_SET,
-        VALUE_SIGNAL_STATE: VALUE_SIGNAL_STATE,
-        PLAY_SIGNAL: PLAY_SIGNAL,
-        PLAY_SIGNAL_SET: PLAY_SIGNAL_SET,
-        set_topics: [
-            RECORD_SIGNAL_SET,
-            VALUE_SIGNAL_SET,
-            PLAY_SIGNAL_SET
-        ]
-    };
-};
-
-var registerEntities = function(ha, haDevice, param) {
-    var NODE_ID = param.NODE_ID, LIFELINE_SGINAL = param.LIFELINE_SGINAL, RECORD_SIGNAL = param.RECORD_SIGNAL, RECORD_SIGNAL_SET = param.RECORD_SIGNAL_SET, VALUE_SIGNAL_SET = param.VALUE_SIGNAL_SET, VALUE_SIGNAL_STATE = param.VALUE_SIGNAL_STATE, PLAY_SIGNAL = param.PLAY_SIGNAL, PLAY_SIGNAL_SET = param.PLAY_SIGNAL_SET;
+    var RECORDED_SIGNALS = ha.genFlicPrefixObject(nodeId, "rsignals");
+    var RECORDED_SIGNALS_CMD = ha.genFlicPrefixObject(nodeId, "rsignals/cmd");
+    var DELETE_SIGNAL = ha.genFlicPrefixObject(nodeId, "delsignals");
+    var DELETE_SIGNAL_CMD = ha.genFlicPrefixObject(nodeId, "delsignals/cmd");
     var availability = [
         {
             payload_available: "ON",
@@ -645,6 +615,148 @@ var registerEntities = function(ha, haDevice, param) {
             topic: LIFELINE_SGINAL.mqttPrefix
         }
     ];
+    return {
+        NODE_ID: nodeId,
+        LIFELINE_SGINAL: LIFELINE_SGINAL,
+        RECORD_SIGNAL: RECORD_SIGNAL,
+        RECORD_SIGNAL_SET: RECORD_SIGNAL_SET,
+        RECORDED_SIGNALS: RECORDED_SIGNALS,
+        RECORDED_SIGNALS_CMD: RECORDED_SIGNALS_CMD,
+        PLAY_SIGNAL: PLAY_SIGNAL,
+        PLAY_SIGNAL_SET: PLAY_SIGNAL_SET,
+        DELETE_SIGNAL: DELETE_SIGNAL,
+        DELETE_SIGNAL_CMD: DELETE_SIGNAL_CMD,
+        set_topics: [
+            RECORD_SIGNAL_SET,
+            RECORDED_SIGNALS_CMD,
+            PLAY_SIGNAL_SET,
+            DELETE_SIGNAL_CMD
+        ],
+        availability: availability
+    };
+};
+var homeAutomationWords = [
+    "home",
+    "hub",
+    "plug",
+    "bulb",
+    "lock",
+    "door",
+    "gate",
+    "bell",
+    "cam",
+    "nest",
+    "ring",
+    "alex",
+    "echo",
+    "siri",
+    "gove",
+    "hue",
+    "wemo",
+    "sonos",
+    "arlo",
+    "wyze",
+    "zigb",
+    "zway",
+    "mqtt",
+    "node",
+    "iftt",
+    "zap",
+    "temp",
+    "heat",
+    "cool",
+    "fan",
+    "vent",
+    "ac",
+    "wifi",
+    "ble",
+    "zwav",
+    "lora",
+    "mesh",
+    "edge",
+    "cloud",
+    "api",
+    "app",
+    "ios",
+    "droid",
+    "voice",
+    "tap",
+    "swipe",
+    "scene",
+    "rule",
+    "auto",
+    "mode",
+    "away",
+    "sleep",
+    "wake",
+    "light",
+    "dim",
+    "on",
+    "off",
+    "toggle",
+    "timer",
+    "schedule",
+    "sensor",
+    "motion",
+    "open",
+    "close",
+    "leak",
+    "smoke",
+    "co2",
+    "air",
+    "humid",
+    "lux",
+    "rgb",
+    "cct",
+    "tune",
+    "group",
+    "zone",
+    "room",
+    "floor",
+    "alarm",
+    "siren",
+    "arm",
+    "disarm",
+    "panic",
+    "geo",
+    "fence",
+    "dash",
+    "widget",
+    "ui",
+    "theme",
+    "dark",
+    "log",
+    "event",
+    "alert",
+    "push",
+    "sms",
+    "email",
+    "web",
+    "hook",
+    "rest",
+    "grpc",
+    "mqtt"
+];
+function generateSequence(n) {
+    var words = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : null, sep = arguments.length > 2 && arguments[2] !== void 0 ? arguments[2] : "-";
+    words = words || homeAutomationWords;
+    var result = [];
+    for(var i = 0; i < n; i++){
+        var randomIndex = Math.floor(Math.random() * words.length);
+        result.push(words[randomIndex]);
+    }
+    return result.join(sep);
+}
+var generateRandomKeyNotInList = function(l) {
+    var name = generateSequence(5);
+    while(l.indexOf(name) !== -1){
+        name = generateSequence(5);
+    }
+    return name;
+};
+
+var registerEntities = function(ha, haDevice, constants) {
+    var NODE_ID = constants.NODE_ID, LIFELINE_SGINAL = constants.LIFELINE_SGINAL, RECORD_SIGNAL = constants.RECORD_SIGNAL, RECORD_SIGNAL_SET = constants.RECORD_SIGNAL_SET, PLAY_SIGNAL = constants.PLAY_SIGNAL, PLAY_SIGNAL_SET = constants.PLAY_SIGNAL_SET, DELETE_SIGNAL = constants.DELETE_SIGNAL, DELETE_SIGNAL_CMD = constants.DELETE_SIGNAL_CMD, availability = constants.availability;
     ha.startLifeLine("IR Connnected", NODE_ID, haDevice, LIFELINE_SGINAL.objectId);
     ha.registerEntity("Record Signal", "switch", NODE_ID, RECORD_SIGNAL.objectId, haDevice, {
         icon: "mdi:record-rec",
@@ -652,57 +764,118 @@ var registerEntities = function(ha, haDevice, param) {
         device_class: "switch",
         availability: availability
     });
-    ha.registerEntity("Signal", "text", NODE_ID, VALUE_SIGNAL_STATE.objectId, haDevice, {
-        command_topic: VALUE_SIGNAL_SET.mqttPrefix,
-        icon: "mdi:broadcast",
-        max: 255,
-        availability: availability
-    });
-    ha.registerEntity("Play Signal", "button", NODE_ID, PLAY_SIGNAL.objectId, haDevice, {
+    ha.registerEntity("Delete Signal", "button", NODE_ID, PLAY_SIGNAL.objectId, haDevice, {
         icon: "mdi:play",
         command_topic: PLAY_SIGNAL_SET.mqttPrefix,
         availability: availability
     });
+    ha.registerEntity("Delete Signal", "button", NODE_ID, DELETE_SIGNAL.objectId, haDevice, {
+        icon: "mdi:delete",
+        command_topic: DELETE_SIGNAL_CMD.mqttPrefix,
+        availability: availability
+    });
+};
+var registerSelect = function(ha, haDevice, state, param) {
+    var NODE_ID = param.NODE_ID, RECORD_SIGNAL = param.RECORD_SIGNAL, RECORDED_SIGNALS_CMD = param.RECORDED_SIGNALS_CMD, availability = param.availability, onDone = arguments.length > 4 && arguments[4] !== void 0 ? arguments[4] : function() {};
+    state.signalStore.withDataIndexed(function(data) {
+        ha.registerEntity("Recorded Signals", "select", NODE_ID, RECORD_SIGNAL.objectId, haDevice, {
+            command_topic: RECORDED_SIGNALS_CMD.mqttPrefix,
+            icon: "mdi:broadcast",
+            max: 500,
+            availability: availability,
+            options: data.map(function(param) {
+                var name = param.name;
+                return String(name);
+            })
+        });
+        onDone();
+    });
 };
 
-var irMQTTHandler = function(mqtt, ha, nodeId, logger, state, param) {
-    var RECORD_SIGNAL_SET = param.RECORD_SIGNAL_SET, VALUE_SIGNAL_SET = param.VALUE_SIGNAL_SET, RECORD_SIGNAL = param.RECORD_SIGNAL;
-    logger.info("Registering ir mqtt handler ".concat(nodeId, " ").concat(state.currentSignal()));
+var irMQTTHandler = function(mqtt, ha, nodeId, logger, state, param, reloadSelectableSignals) {
+    var RECORD_SIGNAL_SET = param.RECORD_SIGNAL_SET, RECORDED_SIGNALS_CMD = param.RECORDED_SIGNALS_CMD, PLAY_SIGNAL_SET = param.PLAY_SIGNAL_SET, DELETE_SIGNAL_CMD = param.DELETE_SIGNAL_CMD, RECORD_SIGNAL = param.RECORD_SIGNAL;
+    logger.info("Registering ir mqtt handler ".concat(nodeId, " "));
     mqtt.on("message", function(topic, message) {
         logger.info("message:", JSON.stringify({
             topic: topic,
             message: message,
-            state: state,
-            currentSignal: state.currentSignal()
+            state: state
         }));
-        if (topic === VALUE_SIGNAL_SET.mqttPrefix) {
-            state.setCurrentSignal(message);
-            logger.info("setting currentSignal", message);
-        } else if (topic === RECORD_SIGNAL_SET.mqttPrefix) {
+        if (topic === RECORD_SIGNAL_SET.mqttPrefix) {
             logger.info("IR module is being set to ".concat(message));
+            if (!state.isRecording()) {
+                ir.record();
+                state.setRecordingState(true);
+                logger.info("Started recording...");
+                return;
+            }
             if (message === "OFF" && state.isRecording()) {
+                logger.info("Attempting to stop recording...");
                 try {
                     ir.cancelRecord();
                     state.setRecordingState(false);
+                    logger.info("Recording stopped!");
+                    return;
                 } catch (err) {
                     logger.error("Failed to stop record, check you have the latest version of the sdk!");
                     state.setRecordingState(true);
                     ha.publishState(nodeId, RECORD_SIGNAL.objectId, "OFF", {
                         dup: false
                     });
+                    return;
                 }
-            } else if (!state.isRecording()) {
-                ir.record();
-                state.setRecordingState(true);
-            } else {
-                logger.info("Doing nothing state.isRecording()=".concat(state.isRecording(), " state.currentSignal()=").concat(state.currentSignal()));
             }
+            logger.info("Doing nothing state.isRecording()=".concat(state.isRecording()));
+            return;
         }
+        if (topic === RECORDED_SIGNALS_CMD.mqttPrefix) {
+            logger.info("Updating internal signal state to ".concat(message));
+            state.signalStore.setSelection(message, function() {});
+            return;
+        }
+        if (topic === PLAY_SIGNAL_SET.mqttPrefix) {
+            return state.signalStore.withData(function(signals, currentSelection) {
+                if (currentSelection === null) {
+                    logger.error("currentSelection=".concat(currentSelection, " cannot be played!"));
+                    return;
+                }
+                if (currentSelection >= signals.length) {
+                    logger.error("currentSelection=".concat(currentSelection, " >= signals.length=").concat(signals.length, " cannot be played!"));
+                    return;
+                }
+                var currentSignal = signals[currentSelection];
+                var arr = null;
+                try {
+                    arr = convertStr2Uint32Array(currentSignal);
+                } catch (err) {
+                    logger.error("invalid string signal set", JSON.stringify(err), err);
+                    return;
+                }
+                return ir.play(arr, function(err) {
+                    if (err) {
+                        logger.error("failed to play signal", JSON.stringify(err), err);
+                    } else {
+                        logger.debug("signal played!");
+                    }
+                });
+            });
+        }
+        if (topic === DELETE_SIGNAL_CMD.mqttPrefix) {
+            return state.signalStore.removeCurrent(function() {
+                return reloadSelectableSignals(function() {
+                    return logger.info("Successfully removed Current Selection!");
+                });
+            });
+        }
+        logger.error("Invalid topic recieved from mqtt ".concat(JSON.stringify({
+            topic: topic,
+            message: message
+        })));
     });
 };
 
-var handleIREvents = function(ha, logger, nodeId, state, param) {
-    var VALUE_SIGNAL_STATE = param.VALUE_SIGNAL_STATE, RECORD_SIGNAL = param.RECORD_SIGNAL;
+var handleIREvents = function(ha, logger, nodeId, state, param, reloadSelectableSignals) {
+    var RECORD_SIGNAL = param.RECORD_SIGNAL, RECORDED_SIGNALS = param.RECORDED_SIGNALS;
     ir.on("recordComplete", function(data) {
         logger.info("recordComplete", data);
         if (data.length === 0) {
@@ -713,13 +886,225 @@ var handleIREvents = function(ha, logger, nodeId, state, param) {
         logger.info("recording completed with", JSON.stringify({
             stringMessage: stringMessage
         }));
-        state.setCurrentSignal(stringMessage);
-        ha.publishState(nodeId, VALUE_SIGNAL_STATE.objectId, stringMessage, {
-            retain: true
+        state.signalStore.add(stringMessage, function(idx) {
+            reloadSelectableSignals(function() {
+                ha.publishState(nodeId, RECORDED_SIGNALS.objectId, String(idx), {
+                    retain: true
+                });
+            });
         });
         state.setRecordingState(false);
         ha.publishState(nodeId, RECORD_SIGNAL.objectId, "OFF");
     });
+};
+
+function _class_call_check$1(instance, Constructor) {
+    if (!(instance instanceof Constructor)) {
+        throw new TypeError("Cannot call a class as a function");
+    }
+}
+function _defineProperties$1(target, props) {
+    for(var i = 0; i < props.length; i++){
+        var descriptor = props[i];
+        descriptor.enumerable = descriptor.enumerable || false;
+        descriptor.configurable = true;
+        if ("value" in descriptor) descriptor.writable = true;
+        Object.defineProperty(target, descriptor.key, descriptor);
+    }
+}
+function _create_class$1(Constructor, protoProps, staticProps) {
+    if (protoProps) _defineProperties$1(Constructor.prototype, protoProps);
+    return Constructor;
+}
+function _define_property$3(obj, key, value) {
+    if (key in obj) {
+        Object.defineProperty(obj, key, {
+            value: value,
+            enumerable: true,
+            configurable: true,
+            writable: true
+        });
+    } else {
+        obj[key] = value;
+    }
+    return obj;
+}
+var IRSignalStore = /*#__PURE__*/ function() {
+    function IRSignalStore(logger) {
+        var storeCacheKey = arguments.length > 1 && arguments[1] !== void 0 ? arguments[1] : "flic2hass:ir:signals";
+        _class_call_check$1(this, IRSignalStore);
+        _define_property$3(this, "logger", void 0);
+        _define_property$3(this, "storeCacheKey", void 0);
+        _define_property$3(this, "internalCacheStore", void 0);
+        this.logger = logger;
+        this.storeCacheKey = storeCacheKey;
+        this.internalCacheStore = null;
+        this.reloadLocalCache();
+    }
+    _create_class$1(IRSignalStore, [
+        {
+            key: "reloadLocalCache",
+            value: function reloadLocalCache() {
+                var cb = arguments.length > 0 && arguments[0] !== void 0 ? arguments[0] : function() {};
+                var _this = this;
+                this.getValues(function(err, data) {
+                    if (err) {
+                        return cb(err, null);
+                    }
+                    if (data) {
+                        _this.internalCacheStore = data;
+                        return cb(null, data);
+                    }
+                });
+            }
+        },
+        {
+            key: "getValues",
+            value: function getValues(cb) {
+                var _this = this;
+                return datastore.get(this.storeCacheKey, function(err, data) {
+                    if (err) {
+                        return cb(err, null);
+                    }
+                    if (!data) {
+                        return cb(null, {
+                            currentSelection: null,
+                            signals: {}
+                        });
+                    }
+                    try {
+                        return cb(null, JSON.parse(data));
+                    } catch (err) {
+                        _this.logger.error("Failed to parse json defaulting to empty -> data=".concat(data, " err=").concat(err));
+                        return cb(null, {
+                            currentSelection: null,
+                            signals: {}
+                        });
+                    }
+                });
+            }
+        },
+        {
+            key: "withData",
+            value: function withData(cb) {
+                if (this.internalCacheStore) {
+                    cb(this.internalCacheStore["signals"], this.internalCacheStore["currentSelection"]);
+                } else {
+                    this.reloadLocalCache(function(err, data) {
+                        if (err) {
+                            throw err;
+                        }
+                        if (!data) {
+                            throw new Error("failed to get data");
+                        }
+                        return cb(data["signals"], data["currentSelection"]);
+                    });
+                }
+            }
+        },
+        {
+            key: "withDataIndexed",
+            value: function withDataIndexed(cb) {
+                this.withData(function(signals, currentSelection) {
+                    cb(Object.keys(signals).map(function(k) {
+                        return {
+                            name: k,
+                            signal: signals[k]
+                        };
+                    }), currentSelection);
+                });
+            }
+        },
+        {
+            key: "setSelection",
+            value: function setSelection(selection, cb) {
+                var _this = this;
+                this.withData(function(signals) {
+                    if (signals[selection]) {
+                        _this.persist({
+                            signals: signals,
+                            currentSelection: selection
+                        });
+                        return cb(selection);
+                    }
+                    _this.logger.error("Not setting currentSelection to ".concat(selection, " as data.keys=").concat(Object.keys(signals), ", consider reloading or deleting the entity in home-assistant."));
+                    _this.persist({
+                        signals: signals,
+                        currentSelection: null
+                    });
+                    return cb(null);
+                });
+            }
+        },
+        {
+            key: "add",
+            value: function add(signal, cb) {
+                var _this = this;
+                this.withData(function(signals, currentSelection) {
+                    var randomName = generateRandomKeyNotInList(Object.keys(signals));
+                    signals[randomName] = signal;
+                    _this.persist({
+                        signals: signals,
+                        currentSelection: currentSelection
+                    });
+                    cb(randomName);
+                });
+            }
+        },
+        {
+            key: "remove",
+            value: function remove(name, cb) {
+                var _this = this;
+                this.withData(function(signals, currentSelection) {
+                    delete signals[name];
+                    _this.persist({
+                        signals: signals,
+                        currentSelection: currentSelection
+                    });
+                    return cb();
+                });
+            }
+        },
+        {
+            key: "removeCurrent",
+            value: function removeCurrent(cb) {
+                var _this = this;
+                this.withData(function(signals, currentSelection) {
+                    if (currentSelection === null) {
+                        _this.logger.error("Not removing ".concat(currentSelection, " as it is null, consider reloading or deleting the entity in home-assistant."));
+                        return;
+                    }
+                    delete signals[currentSelection];
+                    _this.persist({
+                        signals: signals,
+                        currentSelection: null
+                    });
+                    return cb();
+                });
+            }
+        },
+        {
+            key: "persist",
+            value: function persist(data) {
+                this.internalCacheStore = data;
+                datastore.put(this.storeCacheKey, JSON.stringify(this.internalCacheStore));
+            }
+        }
+    ]);
+    return IRSignalStore;
+}();
+var makeIRSharedState = function(logger) {
+    var isRecording = false;
+    var signalStore = new IRSignalStore(logger);
+    return {
+        signalStore: signalStore,
+        isRecording: function isRecording1() {
+            return isRecording;
+        },
+        setRecordingState: function setRecordingState(newValue) {
+            isRecording = newValue;
+        }
+    };
 };
 
 var startIRController = function(ha, mqtt) {
@@ -737,16 +1122,21 @@ var startIRController = function(ha, mqtt) {
     };
     var constants = getConstants$1(ha, options);
     var nodeId = constants.NODE_ID;
-    var state = makeIRSharedState();
+    var state = makeIRSharedState(logger);
     logger.info("starting...");
     logger.debug("setting up entities...");
     registerEntities(ha, haDevice, constants);
+    registerSelect(ha, haDevice, state, constants);
     logger.debug("setting default states....");
     ha.publishState(nodeId, constants.RECORD_SIGNAL.objectId, "OFF");
     ha.publishState(nodeId, constants.PLAY_SIGNAL.objectId, "OFF");
     logger.debug("registering events");
-    irMQTTHandler(mqtt, ha, nodeId, logger, state, constants);
-    handleIREvents(ha, logger, nodeId, state, constants);
+    irMQTTHandler(mqtt, ha, nodeId, logger, state, constants, function(onDone) {
+        return registerSelect(ha, haDevice, state, constants, onDone);
+    });
+    handleIREvents(ha, logger, nodeId, state, constants, function(onDone) {
+        return registerSelect(ha, haDevice, state, constants, onDone);
+    });
     logger.debug("subscribing to", constants.set_topics);
     mqtt.subscribe(constants.set_topics.map(function(x) {
         return x.mqttPrefix;

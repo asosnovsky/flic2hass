@@ -21,26 +21,6 @@ export const makeOptions = (
   ...opt,
 });
 
-export type IRState = ReturnType<typeof makeIRSharedState>;
-export const makeIRSharedState = () => {
-  let currentSignal = "";
-  let isRecording: boolean = false;
-  return {
-    isRecording() {
-      return isRecording;
-    },
-    setRecordingState(newValue: boolean) {
-      isRecording = newValue;
-    },
-    currentSignal() {
-      return currentSignal;
-    },
-    setCurrentSignal(newValue: string) {
-      currentSignal = newValue;
-    },
-  };
-};
-
 export type IRConstants = ReturnType<typeof getConstants>;
 export type IRConstantsNames = keyof IRConstants;
 export const getConstants = (ha: HAmqtt, options: IRControllerOpt) => {
@@ -48,19 +28,164 @@ export const getConstants = (ha: HAmqtt, options: IRControllerOpt) => {
   const LIFELINE_SGINAL = ha.genFlicPrefixObject(nodeId, "lifeline");
   const RECORD_SIGNAL = ha.genFlicPrefixObject(nodeId, "record");
   const RECORD_SIGNAL_SET = ha.genFlicPrefixObject(nodeId, "record/set");
-  const VALUE_SIGNAL_SET = ha.genFlicPrefixObject(nodeId, "signal/set");
-  const VALUE_SIGNAL_STATE = ha.genFlicPrefixObject(nodeId, "signal");
   const PLAY_SIGNAL = ha.genFlicPrefixObject(nodeId, "play");
   const PLAY_SIGNAL_SET = ha.genFlicPrefixObject(nodeId, "play/set");
+  const RECORDED_SIGNALS = ha.genFlicPrefixObject(nodeId, "rsignals");
+  const RECORDED_SIGNALS_CMD = ha.genFlicPrefixObject(nodeId, "rsignals/cmd");
+  const DELETE_SIGNAL = ha.genFlicPrefixObject(nodeId, "delsignals");
+  const DELETE_SIGNAL_CMD = ha.genFlicPrefixObject(nodeId, "delsignals/cmd");
+  const availability = [
+    {
+      payload_available: "ON",
+      payload_not_available: "unavailable",
+      topic: LIFELINE_SGINAL.mqttPrefix,
+    },
+  ];
   return {
     NODE_ID: nodeId,
     LIFELINE_SGINAL,
     RECORD_SIGNAL,
     RECORD_SIGNAL_SET,
-    VALUE_SIGNAL_SET,
-    VALUE_SIGNAL_STATE,
+    RECORDED_SIGNALS,
+    RECORDED_SIGNALS_CMD,
     PLAY_SIGNAL,
     PLAY_SIGNAL_SET,
-    set_topics: [RECORD_SIGNAL_SET, VALUE_SIGNAL_SET, PLAY_SIGNAL_SET],
+    DELETE_SIGNAL,
+    DELETE_SIGNAL_CMD,
+    set_topics: [
+      RECORD_SIGNAL_SET,
+      RECORDED_SIGNALS_CMD,
+      PLAY_SIGNAL_SET,
+      DELETE_SIGNAL_CMD,
+    ],
+    availability,
   };
+};
+
+const homeAutomationWords: string[] = [
+  "home",
+  "hub",
+  "plug",
+  "bulb",
+  "lock",
+  "door",
+  "gate",
+  "bell",
+  "cam",
+  "nest",
+  "ring",
+  "alex",
+  "echo",
+  "siri",
+  "gove",
+  "hue",
+  "wemo",
+  "sonos",
+  "arlo",
+  "wyze",
+  "zigb",
+  "zway",
+  "mqtt",
+  "node",
+  "iftt",
+  "zap",
+  "temp",
+  "heat",
+  "cool",
+  "fan",
+  "vent",
+  "ac",
+  "wifi",
+  "ble",
+  "zwav",
+  "lora",
+  "mesh",
+  "edge",
+  "cloud",
+  "api",
+  "app",
+  "ios",
+  "droid",
+  "voice",
+  "tap",
+  "swipe",
+  "scene",
+  "rule",
+  "auto",
+  "mode",
+  "away",
+  "sleep",
+  "wake",
+  "light",
+  "dim",
+  "on",
+  "off",
+  "toggle",
+  "timer",
+  "schedule",
+  "sensor",
+  "motion",
+  "open",
+  "close",
+  "leak",
+  "smoke",
+  "co2",
+  "air",
+  "humid",
+  "lux",
+  "rgb",
+  "cct",
+  "tune",
+  "group",
+  "zone",
+  "room",
+  "floor",
+  "alarm",
+  "siren",
+  "arm",
+  "disarm",
+  "panic",
+  "geo",
+  "fence",
+  "dash",
+  "widget",
+  "ui",
+  "theme",
+  "dark",
+  "log",
+  "event",
+  "alert",
+  "push",
+  "sms",
+  "email",
+  "web",
+  "hook",
+  "rest",
+  "grpc",
+  "mqtt",
+];
+export function generateSequence(
+  n: number,
+  words: string[] | null = null,
+  sep: string = "-",
+): string {
+  words = words || homeAutomationWords;
+  if (n <= 0) {
+    return "";
+  }
+  const result: string[] = [];
+  for (let i = 0; i < n; i++) {
+    const randomIndex = Math.floor(Math.random() * words.length);
+    result.push(words[randomIndex]);
+  }
+
+  return result.join(sep);
+}
+
+export const generateRandomKeyNotInList = (l: string[]): string => {
+  let name = generateSequence(5);
+  while (l.indexOf(name) !== -1) {
+    name = generateSequence(5);
+  }
+  return name;
 };

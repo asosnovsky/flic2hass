@@ -1,27 +1,23 @@
 import { HAmqtt } from "../ha_mqtt/index";
+import { IRState } from "./state";
 import { IRConstants } from "./utils";
 
 export const registerEntities = (
   ha: HAmqtt,
   haDevice: HADevice,
-  {
+  constants: IRConstants,
+) => {
+  const {
     NODE_ID,
     LIFELINE_SGINAL,
     RECORD_SIGNAL,
     RECORD_SIGNAL_SET,
-    VALUE_SIGNAL_SET,
-    VALUE_SIGNAL_STATE,
     PLAY_SIGNAL,
     PLAY_SIGNAL_SET,
-  }: IRConstants,
-) => {
-  const availability = [
-    {
-      payload_available: "ON",
-      payload_not_available: "unavailable",
-      topic: LIFELINE_SGINAL.mqttPrefix,
-    },
-  ];
+    DELETE_SIGNAL,
+    DELETE_SIGNAL_CMD,
+    availability,
+  } = constants;
   ha.startLifeLine(
     "IR Connnected",
     NODE_ID,
@@ -42,20 +38,7 @@ export const registerEntities = (
     },
   );
   ha.registerEntity(
-    "Signal",
-    "text",
-    NODE_ID,
-    VALUE_SIGNAL_STATE.objectId,
-    haDevice,
-    {
-      command_topic: VALUE_SIGNAL_SET.mqttPrefix,
-      icon: "mdi:broadcast",
-      max: 255,
-      availability,
-    },
-  );
-  ha.registerEntity(
-    "Play Signal",
+    "Delete Signal",
     "button",
     NODE_ID,
     PLAY_SIGNAL.objectId,
@@ -66,4 +49,42 @@ export const registerEntities = (
       availability,
     },
   );
+  ha.registerEntity(
+    "Delete Signal",
+    "button",
+    NODE_ID,
+    DELETE_SIGNAL.objectId,
+    haDevice,
+    {
+      icon: "mdi:delete",
+      command_topic: DELETE_SIGNAL_CMD.mqttPrefix,
+      availability,
+    },
+  );
+};
+
+export const registerSelect = (
+  ha: HAmqtt,
+  haDevice: HADevice,
+  state: IRState,
+  { NODE_ID, RECORD_SIGNAL, RECORDED_SIGNALS_CMD, availability }: IRConstants,
+  onDone: () => void = () => {},
+) => {
+  state.signalStore.withDataIndexed((data) => {
+    ha.registerEntity(
+      "Recorded Signals",
+      "select",
+      NODE_ID,
+      RECORD_SIGNAL.objectId,
+      haDevice,
+      {
+        command_topic: RECORDED_SIGNALS_CMD.mqttPrefix,
+        icon: "mdi:broadcast",
+        max: 500,
+        availability,
+        options: data.map(({ name }) => String(name)),
+      },
+    );
+    onDone();
+  });
 };

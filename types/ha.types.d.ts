@@ -10,6 +10,7 @@ type HADevice = {
 };
 type HAComponent =
   | "cover"
+  | "select"
   | "media_player"
   | "light"
   | "sensor"

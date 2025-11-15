@@ -77,7 +77,7 @@ export function makeHAmqtt(
     objectId: string,
   ) => {
     const configtopic = genHAPrefix(component, nodeId, objectId) + "/config";
-    mqttServer.publish(configtopic, null, { retain: false });
+    // mqttServer.publish(configtopic, null, { retain: false });
     logger.debug(configtopic, null);
   };
   const startLifeLine = (

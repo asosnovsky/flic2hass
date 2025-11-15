@@ -8,6 +8,7 @@ type HAmqttOptions = {
 type MQTTPublishOpt = {
   retain?: boolean; // the server should retain this message and send it out again to new subscribers
   dup?: boolean; // indicate the message is a duplicate because original wasn't ACKed (QoS > 0 only)
+  qos?: number;
 };
 type ButtonControllerOpt = {
   debug: boolean;
