@@ -25,7 +25,7 @@ export type IRConstants = ReturnType<typeof getConstants>;
 export type IRConstantsNames = keyof IRConstants;
 export const getConstants = (ha: HAmqtt, options: IRControllerOpt) => {
   const nodeId = `${NODE_ID}${options.uniqueId}`;
-  const LIFELINE_SGINAL = ha.genFlicPrefixObject(nodeId, "lifeline");
+  const LIFELINE_SIGNAL = ha.genFlicPrefixObject(nodeId, "lifeline");
   const RECORD_SIGNAL = ha.genFlicPrefixObject(nodeId, "record");
   const RECORD_SIGNAL_SET = ha.genFlicPrefixObject(nodeId, "record/set");
   const PLAY_SIGNAL = ha.genFlicPrefixObject(nodeId, "play");
@@ -38,12 +38,12 @@ export const getConstants = (ha: HAmqtt, options: IRControllerOpt) => {
     {
       payload_available: "ON",
       payload_not_available: "unavailable",
-      topic: LIFELINE_SGINAL.mqttPrefix,
+      topic: LIFELINE_SIGNAL.mqttPrefix,
     },
   ];
   return {
     NODE_ID: nodeId,
-    LIFELINE_SGINAL,
+    LIFELINE_SIGNAL: LIFELINE_SIGNAL,
     RECORD_SIGNAL,
     RECORD_SIGNAL_SET,
     RECORDED_SIGNALS,
@@ -57,7 +57,7 @@ export const getConstants = (ha: HAmqtt, options: IRControllerOpt) => {
       RECORDED_SIGNALS_CMD,
       PLAY_SIGNAL_SET,
       DELETE_SIGNAL_CMD,
-    ],
+    ].map((x) => x.mqttPrefix),
     availability,
   };
 };

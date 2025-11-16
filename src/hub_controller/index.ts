@@ -23,7 +23,7 @@ export const startFlicHubController = (
     {
       payload_available: "ON",
       payload_not_available: "unavailable",
-      topic: constants.LIFELINE_SGINAL.mqttPrefix,
+      topic: constants.LIFELINE_SIGNAL.mqttPrefix,
     },
   ];
 
@@ -33,7 +33,7 @@ export const startFlicHubController = (
     "FlicHub Connected",
     constants.NODE_ID,
     haDevice,
-    constants.LIFELINE_SGINAL.objectId,
+    constants.LIFELINE_SIGNAL.objectId,
   );
   ha.registerEntity(
     "Action Message",

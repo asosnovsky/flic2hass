@@ -48,6 +48,6 @@ export const startIRController = (
     registerSelect(ha, haDevice, state, constants, onDone),
   );
   logger.debug("subscribing to", constants.set_topics);
-  mqtt.subscribe(constants.set_topics.map((x) => x.mqttPrefix));
+  mqtt.subscribe(constants.set_topics);
   logger.info("is up");
 };

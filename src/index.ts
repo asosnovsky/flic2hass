@@ -1,11 +1,10 @@
-import { makeButtonController } from "./button_controller/index";
-
 import { makeHAmqtt } from "./ha_mqtt/index";
 import { startIRController } from "./ir_controller/index";
 
 import { makeLogger } from "./Logger";
 import { FlicMQTT } from "./mqtt_client/index";
 import { startFlicHubController } from "./hub_controller/index";
+import { startButtinStateHandler } from "./button_controller/index";
 
 export const start = (options: Options) => {
   const mqttServer = new FlicMQTT(options.mqtt.host, {
@@ -25,7 +24,7 @@ export const start = (options: Options) => {
   mqttServer.on("connected", () => {
     logger.info("connected to mqtt");
     if (!options.flicBtns?.disabled) {
-      makeButtonController(ha, options.flicBtns).start();
+      startButtinStateHandler(ha, options.flicBtns);
     }
     if (!options.flicIR?.disabled) {
       startIRController(ha, mqttServer, options.flicIR);

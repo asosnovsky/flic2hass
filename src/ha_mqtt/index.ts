@@ -29,16 +29,23 @@ export function makeHAmqtt(
   ) => {
     return `${options.topics.homeassistant}/${component}/${nodeId}/${objectId}`;
   };
-
+  const publishStateFromObject = (
+    obj: FlicMqttPrefix,
+    state: any,
+    opt: MQTTPublishOpt = {},
+  ) => {
+    mqttServer.publish(obj.mqttPrefix, state + "", opt);
+    logger.debug(JSON.stringify({ obj, state, opt }));
+  };
   const publishState = (
     nodeId: string,
     objectId: string,
     state: any,
     opt: MQTTPublishOpt = {},
   ) => {
-    const btntopic = genFlicPrefix(nodeId, objectId);
-    mqttServer.publish(btntopic, state + "", opt);
-    logger.debug(btntopic, state, JSON.stringify(opt));
+    const topic = genFlicPrefix(nodeId, objectId);
+    mqttServer.publish(topic, state + "", opt);
+    logger.debug(topic, state, JSON.stringify(opt));
   };
   const registerEntity = (
     name: string,
@@ -102,6 +109,7 @@ export function makeHAmqtt(
     deregisterEntity,
     registerEntity,
     publishState,
+    publishStateFromObject,
     genFlicPrefix,
     genFlicPrefixObject,
     startLifeLine,

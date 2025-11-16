@@ -9,7 +9,7 @@ export const registerEntities = (
 ) => {
   const {
     NODE_ID,
-    LIFELINE_SGINAL,
+    LIFELINE_SIGNAL,
     RECORD_SIGNAL,
     RECORD_SIGNAL_SET,
     PLAY_SIGNAL,
@@ -22,7 +22,7 @@ export const registerEntities = (
     "IR Connnected",
     NODE_ID,
     haDevice,
-    LIFELINE_SGINAL.objectId,
+    LIFELINE_SIGNAL.objectId,
   );
   ha.registerEntity(
     "Record Signal",
@@ -38,7 +38,7 @@ export const registerEntities = (
     },
   );
   ha.registerEntity(
-    "Delete Signal",
+    "Play Signal",
     "button",
     NODE_ID,
     PLAY_SIGNAL.objectId,

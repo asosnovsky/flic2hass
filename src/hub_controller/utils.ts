@@ -23,7 +23,7 @@ export const getConstants = (ha: HAmqtt, options: FlicHubOptions) => {
   const nodeId = `${NODE_ID}${options.uniqueId}`;
   return {
     NODE_ID: nodeId,
-    LIFELINE_SGINAL: ha.genFlicPrefixObject(nodeId, "lifeline"),
+    LIFELINE_SIGNAL: ha.genFlicPrefixObject(nodeId, "lifeline"),
     MESSAGE: ha.genFlicPrefixObject(nodeId, "action-message"),
     COMMAND_TOPIC: (virtualId: string) =>
       ha.genFlicPrefixObject(nodeId, `virt-command-${virtualId}`),
