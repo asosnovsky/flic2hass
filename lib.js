@@ -918,25 +918,39 @@ MQTT.prototype.packetHandler = function(data) {
         data = Buffer.from(Array.prototype.slice.call(this.partData).concat(Array.prototype.slice.call(data)));
         this.partData = [];
     }
-    // Figure out packet length...
-    var dLen = mqttPacketLengthDec(data.slice(1, data.length));
-    var pLen = dLen.decLen + dLen.lenBy + 1;
-    // less than one packet?
-    if (data.length < pLen) {
-        this.partData = data;
-        return;
+    
+    // Process all complete packets in a loop (instead of recursive emit)
+    while (data && data.length > 0) {
+        // Figure out packet length...
+        var dLen = mqttPacketLengthDec(data.slice(1, data.length));
+        var pLen = dLen.decLen + dLen.lenBy + 1;
+        // less than one packet?
+        if (data.length < pLen) {
+            this.partData = data;
+            return;
+        }
+        // Allow zero-size pData, but detect if its indexes
+        // will go out of bounds.
+        if (1 + dLen.lenBy >= data.length) {
+            return;
+        }
+        // Get the data for this packet
+        var pData = data.slice(1 + dLen.lenBy, pLen);
+        
+        // Process this packet
+        this._handleSinglePacket(data, pData);
+        
+        // Move to next packet (if any) - iterative instead of recursive
+        if (data.length > pLen) {
+            data = data.slice(pLen, data.length);
+        } else {
+            break;
+        }
     }
-    // Allow zero-size pData, but detect if its indexes
-    // will go out of bounds.
-    if (1 + dLen.lenBy >= data.length) {
-        return;
-    }
-    // Get the data for this packet
-    var pData = data.slice(1 + dLen.lenBy, pLen);
-    // more than one packet? re-emit it so we handle it later
-    if (data.length > pLen) {
-        this.client.emit("data", data.slice(pLen, data.length));
-    }
+};
+
+// Extracted packet handling logic
+MQTT.prototype._handleSinglePacket = function(data, pData) {
     // Now handle this MQTT packet
     var cmd = data[0];
     var type = cmd >> 4;
