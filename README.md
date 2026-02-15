@@ -157,3 +157,7 @@ The setup example contains just the bare minimum changes, if you wish to play ar
 * Can you add support for LED control?
 
    This is also not yet [supported by SDK](https://community.flic.io/topic/18197/flic-button-led-control/3)
+
+* Why does my Button not show up in Home Assistant?
+
+   Give your button a name in the app. Buttons without names are not registered properly in MQTT.
